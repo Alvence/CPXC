@@ -11,7 +11,8 @@ ARFFLIBDIR := arff
 ARFFLIB	 := arff
 
 SRCFILES := $(shell find $(SRCDIR) -name "*.cc")
-OBJFILES := $(patsubst %.cc,%.o,$(SRCFILES))
+#OBJFILES := $(patsubst %.cc,%.o,$(SRCFILES))
+OBJFILES := BinDivider.o
 
 CC      := g++
 CFLAGS := -g -Wall
@@ -20,27 +21,24 @@ INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR)
 LD       := g++
 LDFLAGS  := -g -Wall -shared
 
-TARGET   := main.o
+TARGET   := main
 
-all: $(TARGET) 
+all: $(OBJFILES) $(TARGET) 
 
 ### target ###
-$(TARGET): main.cc
-	$(CC) $(CFLAGS)  $(INCLUDE) -o $@ $<  $(LFLAGS)
+$(TARGET): $(OBJECTS) main.cc
+	$(CC) $(CFLAGS)  $(INCLUDE) $(OBJFILES)  -o $@ $<  $(LFLAGS)
 
 test: arff_test.cc 
 	$(CC) $(CFLAGS)  $(INCLUDE) -o $@ $<  $(LFLAGS)
 
 ### mostly generic ###
-##%.o: %.cpp
-#	$(CPP) $(CPPFLAGS) $(INCLUDE) -c -o $@ $<
-
-#%.o: %.cc
-#	$(CPP) $(CPPFLAGS) $(INCLUDE) -c -o $@ $<
+%.o: %.cc
+	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $< $(LFLAGS)
 
 #clean:
 #	rm -f $(STATIC) $(OBJFILES)
 ###	rm -f $(TEST) $(TESTOBJS) $(GTOBJS) $(GTLIB)
 ###
 clean:
-	rm *.o *~ test	
+	rm -R *.o *~ main test *.dSYM	
