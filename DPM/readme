@@ -1,0 +1,33 @@
+DPM-delta
+Version 1.0
+===========
+
+Discriminative Pattern Mining (DPM) is an algorithm to simultaneously
+miner generators and close patterns of frequent equivalence classes.
+The transactions can have multiple class labels.
+
+Usage:
+	DPM-delta data_filename \
+		 #classes min_sup(an obsolute number) \
+		 delta(a small integer) [output_filename]
+
+
+Data format is similar to FIMI workshop:
+
+Each line represents an object with a set of attributes (integers) 
+separated by space.  The first column contains class labels. 
+
+Credits:
+
+This program is written by LIU Guimei. The project is supported
+in part by I2R-SOC Joint Lab on Knowledge Discovery and by
+FRC grant "R-252-040-238-101 & R-252-060-238-133: 
+Pattern Spaces: Theory, Algorithms, and Applications".
+
+If you use this program, please cite the following paper:
+
+Jinyan Li, Guimei Liu, Limsoon Wong. 
+Mining Statistically Important Equivalence Classes.
+Proceedings of 13th International Conference on Knowledge
+Discovery and Data Mining,
+pages ???--???, San Jose, California, 12-15 August 2007.
