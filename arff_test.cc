@@ -24,7 +24,9 @@ int main(int argc, char* argv[]){
     for (int j = 0; j != ds->num_attributes(); j++){
       ArffValue* v = x->get(j);
       //std::string s = *v;
-      printf("instance %d: attribute %d - type=%d  value=\n", i, j, v->type());
+      if (v->type() == FLOAT || v->type() == INTEGER){
+        printf("instance %d: attribute %d - type=%d  value=%f\n", i, j, v->type(),(float)(*v)*1.0);
+      }
     }
   }
 

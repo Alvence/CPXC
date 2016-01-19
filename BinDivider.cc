@@ -11,6 +11,10 @@
 using namespace std;
 
 BinDivider::~BinDivider(){
+  if(widths!=NULL){
+    delete widths;
+    widths=NULL;
+  }
   if (flags!=NULL){
     delete flags;
     flags=NULL;
@@ -41,8 +45,8 @@ bool isNumeric(ArffValueEnum type){
     type == NUMERIC;
 }
 
-void BinDivider::init(ArffData* ds, int width){
-  this->width = width;
+void BinDivider::init(ArffData* ds, int n){
+  this->num_bins = n;
   int dim = ds->num_attributes();
 
   //initialize bin_list, maxs and mins
@@ -68,22 +72,41 @@ void BinDivider::init(ArffData* ds, int width){
       }
     }
   }
+  widths = new vector<float>(dim);
+  for (int j = 0; j != ds->num_attributes(); j++){
+    if(flags->at(j)){
+      float width = (maxs->at(j)-mins->at(j))/num_bins;
+      widths->at(j)=width;
+      bin_list->at(j) = new vector<float>(num_bins);
+      for (int k =0;  k != num_bins;k++){
+        bin_list->at(j)->at(k) = mins->at(j) + width*k;
+        printf("%4f ",bin_list->at(j)->at(k));
+      }
+      printf("\n");
+    }
+  }
   for (int j = 0; j != ds->num_attributes(); j++){
     printf("For attributes %d: max=%5f min=%5f\n",j, maxs->at(j), mins->at(j));
   }
+  
 }
 
 BinDivider::BinDivider(){
 }
 
 float BinDivider::get_max(int attr_index){
-  return 0.0;
+  return maxs->at(attr_index);
 }
 
 float BinDivider::get_min(int attr_index){
-  return 0.0;
+  return mins->at(attr_index);
 }
 
-int BinDivider::get_index(float val){
-  return 0;
+int BinDivider::get_bin_value(float val, int attr_index){
+  int value = 0;
+  vector<float> * bin = bin_list->at(attr_index);
+  while(value<num_bins && bin->at(value)<=val){
+    value++;
+  }
+  return (attr_index+1)*10+value;
 }
