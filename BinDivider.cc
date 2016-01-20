@@ -80,14 +80,14 @@ void BinDivider::init(ArffData* ds, int n){
       bin_list->at(j) = new vector<float>(num_bins);
       for (int k =0;  k != num_bins;k++){
         bin_list->at(j)->at(k) = mins->at(j) + width*k;
-        printf("%4f ",bin_list->at(j)->at(k));
+        //printf("%4f ",bin_list->at(j)->at(k));
       }
-      printf("\n");
+      //printf("\n");
     }
   }
-  for (int j = 0; j != ds->num_attributes(); j++){
-    printf("For attributes %d: max=%5f min=%5f\n",j, maxs->at(j), mins->at(j));
-  }
+  //for (int j = 0; j != ds->num_attributes(); j++){
+    //printf("For attributes %d: max=%5f min=%5f\n",j, maxs->at(j), mins->at(j));
+  //}
   
 }
 

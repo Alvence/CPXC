@@ -12,12 +12,12 @@ ARFFLIB	 := arff
 
 SRCFILES := $(shell find $(SRCDIR) -name "*.cc")
 #OBJFILES := $(patsubst %.cc,%.o,$(SRCFILES))
-OBJFILES := BinDivider.o
+OBJFILES := BinDivider.o CP.o
 
 CC      := g++
 CFLAGS := -g -Wall
-LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB)
-INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR)
+LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv`
+INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IDPM
 LD       := g++
 LDFLAGS  := -g -Wall -shared
 
@@ -41,4 +41,4 @@ test: arff_test.cc
 ###	rm -f $(TEST) $(TESTOBJS) $(GTOBJS) $(GTLIB)
 ###
 clean:
-	rm -R *.o *~ main test *.dSYM	
+	rm -R temp/ *.o *~ main test *.dSYM	

@@ -13,8 +13,6 @@
 
 /** 32 bit integer */
 typedef long int    int32;
-/** 64 bit integer */
-typedef long long   int64;
 
 
 /**
@@ -23,7 +21,7 @@ typedef long long   int64;
  * @param line line where the error is occuring
  * @param fmt format of the error message (followed by the args)
  */
-void throw_ex(const char* file, int64 line, const char* fmt, ...);
+void throw_ex(const char* file, int32 line, const char* fmt, ...);
 
 
 /** Handy macro to throw exceptions */
