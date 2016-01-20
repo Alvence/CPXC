@@ -16,7 +16,7 @@ OBJFILES := BinDivider.o CP.o
 
 CC      := g++
 CFLAGS := -g -Wall
-LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv`
+LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc
 INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IDPM
 LD       := g++
 LDFLAGS  := -g -Wall -shared
@@ -41,4 +41,4 @@ test: arff_test.cc
 ###	rm -f $(TEST) $(TESTOBJS) $(GTOBJS) $(GTLIB)
 ###
 clean:
-	rm -R temp/ *.o *~ main test *.dSYM	
+	rm -R  *.o *~ main test *.dSYM	

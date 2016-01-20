@@ -54,13 +54,13 @@ public:
      * @brief Returns the current line position
      * @return current line
      */
-    int64 line() const;
+    long long int line() const;
 
     /**
      * @brief Returns the current column position
      * @return current column
      */
-    int64 column() const;
+    long long int column() const;
 
     /**
      * @brief Whether the file has reached end or not
@@ -93,9 +93,9 @@ private:
     /** file being read */
     std::string m_file;
     /** current line being read */
-    int64 m_line;
+    long long int m_line;
     /** current position in the row being read */
-    int64 m_col;
+    long long int m_col;
     /** current character read from the file */
     char m_char;
     /** previous character read from the file */

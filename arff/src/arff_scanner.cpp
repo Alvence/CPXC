@@ -5,8 +5,8 @@ const char ArffScanner::NEWLINE = '\n';
 
 
 ArffScanner::ArffScanner(const std::string& _file): m_file(_file),
-                                            m_line((int64)0),
-                                            m_col((int64)0),
+                                            m_line((long long int)0),
+                                            m_col((long long int)0),
                                             m_char(NEWLINE),
                                             m_prev_char((char)0),
                                             m_fp(NULL) {
@@ -51,11 +51,11 @@ char ArffScanner::previous() const {
     return m_prev_char;
 }
 
-int64 ArffScanner::line() const {
+long long int ArffScanner::line() const {
     return m_line;
 }
 
-int64 ArffScanner::column() const {
+long long int ArffScanner::column() const {
     return m_col;
 }
 
@@ -64,7 +64,7 @@ bool ArffScanner::eof() const {
 }
 
 std::string ArffScanner::err_msg(const std::string& msg) const {
-    std::string err = m_file + ":" + num2str<int64>(m_line);
-    err += ":" + num2str<int64>(m_col) + " " + msg;
+    std::string err = m_file + ":" + num2str<long long int>(m_line);
+    err += ":" + num2str<long long int>(m_col) + " " + msg;
     return err;
 }

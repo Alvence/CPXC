@@ -103,7 +103,7 @@ void ArffData::_cross_check_instance(ArffInstance* inst) {
         THROW("%s: instance size and num-attrs mismatch inst=%d attrs=%d",
               "ArffData", inst->size(), m_num_attrs);
     }
-    for(int32 i=0;i<m_num_attrs;++i) {
+   /* for(int32 i=0;i<m_num_attrs;++i) {
         ArffValue* val = inst->get(i);
         ArffAttr* attr = m_attrs[i];
         ArffValueEnum valType = val->type();
@@ -147,7 +147,7 @@ void ArffData::_cross_check_instance(ArffInstance* inst) {
                   arff_value2str(valType).c_str());
         }
         ///@todo: Check for date-format mismatch
-    }
+    }*/
 }
 
 ///@todo: implement the method write_arff

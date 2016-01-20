@@ -44,13 +44,13 @@ int32 ArffToken::token_int32() const {
     return (int32)token_int64();
 }
 
-int64 ArffToken::token_int64() const {
+long long int ArffToken::token_int64() const {
     if(m_enum != VALUE_TOKEN) {
         THROW("ArffToken::token_int64 token is not '%s', it's '%s'!",
               "VALUE_TOKEN", arff_token2str(m_enum).c_str());
     }
-    int64 num;
-    str2num<int64>(m_str, num);
+    long long int num;
+    str2num<long long int>(m_str, num);
     return num;
 }
 

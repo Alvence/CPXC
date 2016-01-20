@@ -26,7 +26,7 @@ void throw_ex(const char* file, int32 line, const char* fmt, ...);
 
 /** Handy macro to throw exceptions */
 #define THROW(fmt, ...)                                         \
-    throw_ex(__FILE__, (int64)__LINE__, fmt, ##__VA_ARGS__)
+    throw_ex(__FILE__, (int32)__LINE__, fmt, ##__VA_ARGS__)
 
 
 /**

@@ -101,7 +101,7 @@ public:
      * Note, this function is meaningful only if the token is of
      * 'numeric' type!
      */
-    int64 token_int64() const;
+    long long int token_int64() const;
 
     /**
      * @brief token value as a float

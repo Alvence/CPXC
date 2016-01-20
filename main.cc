@@ -27,6 +27,8 @@ char* datafile;
 char* tempDir;
 int classIndex;
 
+int num_of_attributes;
+int num_of_classes;
 
 vector<int> targets;
 vector<vector<int> > xs;
@@ -88,65 +90,137 @@ void print_vector(vector<T> items){
 }
 
 
-void try_NN(){
-  // Data for visual representation
-    int width = 512, height = 512;
-    Mat image = Mat::zeros(height, width, CV_8UC3);
 
-    // Set up training data
-    float labels[4] = {1.0, -1.0, -1.0, 1.0};
-    Mat labelsMat(4, 1, CV_32FC1, labels);
+void try_SVM(){
+  // Set up training data
+  Mat labelsMat(targets.size(), 1, CV_32FC1);
+  for (int i=0; i<targets.size();i++){
+    labelsMat.at<float>(i,0) = targets[i];
+  }
 
-    float trainingData[4][2] = { {501, 10}, {255, 10}, {501, 255}, {10, 501} };
-    Mat trainingDataMat(4, 2, CV_32FC1, trainingData);
-
-    // Set up SVM's parameters
-    CvSVMParams params;
-    params.svm_type    = CvSVM::C_SVC;
-    params.kernel_type = CvSVM::LINEAR;
-    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
-
-    // Train the SVM
-    CvSVM SVM;
-    SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-
-    Vec3b green(0,255,0), blue (255,0,0);
-    // Show the decision regions given by the SVM
-    for (int i = 0; i < image.rows; ++i)
-        for (int j = 0; j < image.cols; ++j)
-        {
-            Mat sampleMat = (Mat_<float>(1,2) << j,i);
-            float response = SVM.predict(sampleMat);
-
-            if (response == 1)
-                image.at<Vec3b>(i,j)  = green;
-            else if (response == -1)
-                 image.at<Vec3b>(i,j)  = blue;
-        }
-
-    // Show the training data
-    int thickness = -1;
-    int lineType = 8;
-    circle( image, Point(501,  10), 5, Scalar(  0,   0,   0), thickness, lineType);
-    circle( image, Point(255,  10), 5, Scalar(255, 255, 255), thickness, lineType);
-    circle( image, Point(501, 255), 5, Scalar(255, 255, 255), thickness, lineType);
-    circle( image, Point( 10, 501), 5, Scalar(0,   0,   0), thickness, lineType);
-
-    // Show support vectors
-    thickness = 2;
-    lineType  = 8;
-    int c     = SVM.get_support_vector_count();
-
-    for (int i = 0; i < c; ++i)
-    {
-        const float* v = SVM.get_support_vector(i);
-        circle( image,  Point( (int) v[0], (int) v[1]),   6,  Scalar(128, 128, 128), thickness, lineType);
+  Mat trainingDataMat(binning_xs.size(), binning_xs[0].size(), CV_32FC1);
+  for (int i=0; i<binning_xs.size();i++){
+    for (int j=0; j<binning_xs[i].size();j++){
+      trainingDataMat.at<float>(i,j) = binning_xs[i][j];
     }
+  }
 
-    imwrite("result.png", image);        // save the image
 
-    imshow("SVM Simple Example", image); // show it to the user
-    waitKey(0);
+  // Set up SVM's parameters
+  CvSVMParams params;
+  params.svm_type    = CvSVM::C_SVC;
+  params.kernel_type = CvSVM::LINEAR;
+  params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
+
+  // Train the SVM
+  CvSVM SVM;
+  SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+  float err=0;
+  for (int i =0; i<binning_xs.size();i++){
+    Mat sample = trainingDataMat.row(i);
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+    if (SVM.predict(sample)!=targets[i]){
+      err += 1;
+    }
+  }
+  cout<<"err: "<<err/targets.size()<<endl;
+}
+
+
+void try_NN(){
+  //70% data for training
+  int breakpoint = (targets.size()*7)/10;
+  // Set up training data
+  Mat labelsMat(breakpoint, num_of_classes, CV_32FC1);
+  for (int i=0; i<breakpoint;i++){
+    labelsMat.at<float>(i,targets[i]) = 1.0;
+  }
+
+  Mat trainingDataMat(breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=0; i<breakpoint;i++){
+    for (int j=0; j<binning_xs[i].size();j++){
+      trainingDataMat.at<float>(i,j) = binning_xs[i][j];
+    }
+  }
+
+  
+  Mat testLabelsMat(targets.size()-breakpoint, num_of_classes, CV_32FC1);
+  for (int i=breakpoint; i<targets.size();i++){
+    testLabelsMat.at<float>(i,targets[i]) = 1.0;
+  }
+
+  Mat testingDataMat(binning_xs.size()-breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=breakpoint; i<binning_xs.size();i++){
+    for (int j=0; j<binning_xs[i].size();j++){
+      testingDataMat.at<float>(i,j) = binning_xs[i][j];
+    }
+  }
+
+  cout<<binning_xs[0].size()<<" "<<num_of_classes<<endl;
+  int layers_d[] = { binning_xs[0].size(),binning_xs[0].size()/2,10, 10,  num_of_classes};
+  Mat layers = Mat(1,5,CV_32SC1);
+  for (int i = 0; i < 5; i++){
+    layers.at<int>(0,i) = layers_d[i];
+  }
+  // create the network using a sigmoid function with alpha and beta
+  //parameters 0.6 and 1 specified respectively (refer to manual)
+
+  CvANN_MLP* nnetwork = new CvANN_MLP;
+  nnetwork->create(layers, CvANN_MLP::SIGMOID_SYM, 0.6, 1);
+
+  // set the training parameters
+
+  // terminate the training after either 1000
+  // iterations or a very small change in the
+  // network wieghts below the specified value
+ 
+  CvANN_MLP_TrainParams params = CvANN_MLP_TrainParams(
+    cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 1000, 0.000001),
+    CvANN_MLP_TrainParams::BACKPROP,
+    0.1,
+    0.1
+  );
+
+  int iterations = nnetwork->train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+  cout<<"finish training with "<<iterations<<" iterations"<<endl;
+  
+  float err=0;
+  for (int i =0; i<breakpoint;i++){
+    Mat response;
+    nnetwork->predict(trainingDataMat.row(i),response);
+    int res = -1;
+    float max = 0;
+    for (int j = 0;j<num_of_classes;j++){
+      if (response.at<float>(0,j) > max){
+        res = j;
+      }
+    }
+    if (res!=targets[i]){
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"trainning err = "<<err/breakpoint<<endl;
+  
+  err=0;
+  for (int i = 0; i< testingDataMat.rows;i++){
+    Mat response;
+    nnetwork->predict(testingDataMat.row(i),response);
+    int res = -1;
+    float max = 0;
+    for (int j = 0;j<num_of_classes;j++){
+      if (response.at<float>(0,j) > max){
+        res = j;
+      }
+    }
+    if (res!=targets[i+breakpoint]){
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
+  
+  delete nnetwork;
 }
 
 void translate_input(PatternSet* ps){
@@ -177,6 +251,7 @@ int main(int argc, char** argv){
   
   printf("Successfully finish reading the data!\n");
 
+  num_of_attributes = ds->num_attributes();
   BinDivider* divider= new BinDivider();
   divider->init(ds,5);
 
@@ -184,7 +259,7 @@ int main(int argc, char** argv){
   printf("saving binning data to %s\n",tempDataFile);
   generate_binning_data(tempDataFile, ds, divider, classIndex);
 
-  int num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
+  num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   
   char tempDPMFile[32];
   strcpy(tempDPMFile,tempDir);

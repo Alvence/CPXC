@@ -1,1 +1,1 @@
-./main test.arff temp 4 1 100
+./main data/t.arff temp 15 1 100

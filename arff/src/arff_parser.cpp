@@ -137,7 +137,7 @@ void ArffParser::_read_instances() {
                       "MISSING_TOKEN", arff_token2str(type).c_str());
             }
             if(type == MISSING_TOKEN) {
-                inst->add(new ArffValue(aType));
+                inst->add(new ArffValue(aType==NOMINAL?STRING:aType));
             }
             else if(aType == NUMERIC) {
                 inst->add(new ArffValue(tok.token_str(), true));

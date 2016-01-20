@@ -6,14 +6,14 @@
 
 
 #define STR_LENGTH 2048
-void throw_ex(const char* file, int64 line, const char* fmt, ...) {
+void throw_ex(const char* file, int32 line, const char* fmt, ...) {
     char msg[STR_LENGTH];
     va_list va;
     va_start(va, fmt);
     vsprintf(msg, fmt, va);
     va_end(va);
     std::string err(file);
-    err += ":" + num2str<int64>(line) + " -- ";
+    err += ":" + num2str<int32>(line) + " -- ";
     err += msg;
     std::runtime_error ex(err);
     throw ex;
