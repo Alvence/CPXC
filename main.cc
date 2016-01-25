@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <getopt.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <string>
@@ -19,13 +21,16 @@
 
 #include "BinDivider.h"
 #include "CP.h"
+#include "Utils.h"
 
 using namespace cv;
 using namespace std;
 
-char* datafile;
-char* tempDir;
+char datafile[256];
+char tempDir[256];
 int classIndex;
+int min_sup = 1;
+int delta = 100;
 
 int num_of_attributes;
 int num_of_classes;
@@ -79,17 +84,6 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
   }
   out.close();
 }
-
-template <class T>
-void print_vector(vector<T> items){
-  cout<<items.size();
-  for (int i = 0; i != items.size();i++){
-    cout<<" "<<items[i];
-  }
-  cout<<endl;
-}
-
-
 
 void try_SVM(){
   // Set up training data
@@ -230,15 +224,48 @@ void translate_input(PatternSet* ps){
   }
 }
 
-int main(int argc, char** argv){
-  datafile = argv[1];
-  tempDir = argv[2];
-  classIndex = atoi(argv[3]);
+void print_usage() {
+  printf("Usage: \n");
+}
   
-  //options for DPM
-  int min_sup = atoi(argv[4]);
-  int delta = atoi(argv[5]);
 
+
+void analyze_params(int argc, char ** argv){
+  int opt= 0;
+
+  //Specifying the expected options
+  //The two options l and b expect numbers as argument
+  static struct option long_options[] = {
+      {"data",      required_argument, 0,  'd' },
+      {"tempDir",   required_argument, 0,  't' },
+      {"classIndex",required_argument, 0,  'c' },
+      {"min_sup",   required_argument, 0,  's' },
+      {"delta",     required_argument, 0,  'l' },
+      {0,           0,                 0,  0   }
+  };
+
+  int long_index =0;
+  while ((opt = getopt_long(argc, argv,"d:t:c:s:l:", 
+                 long_options, &long_index )) != -1) {
+    switch (opt) {
+      case 'd' : strcpy(datafile,optarg);
+        break;
+      case 't' : strcpy(tempDir,optarg);
+        break;
+      case 'c' : classIndex = atoi(optarg); 
+        break;
+      case 's' : min_sup = atoi(optarg);
+        break;
+      case 'l' : delta = atoi(optarg);
+        break;
+      default: print_usage(); 
+               exit(EXIT_FAILURE);
+    }
+  }
+}
+
+int main(int argc, char** argv){
+  analyze_params(argc,argv);
 
   char tempDataFile[32];
   strcpy(tempDataFile,tempDir);
