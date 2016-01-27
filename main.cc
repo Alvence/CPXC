@@ -85,8 +85,8 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
   out.close();
 }
 
-void try_SVM(){
-  // Set up training data
+void try_NBC(){
+  /*// Set up training data
   Mat labelsMat(targets.size(), 1, CV_32FC1);
   for (int i=0; i<targets.size();i++){
     labelsMat.at<float>(i,0) = targets[i];
@@ -97,8 +97,98 @@ void try_SVM(){
     for (int j=0; j<binning_xs[i].size();j++){
       trainingDataMat.at<float>(i,j) = binning_xs[i][j];
     }
+  }*/
+
+  //70% data for training
+  int breakpoint = (targets.size()*7)/10;
+  // Set up training data
+  Mat labelsMat = Mat::zeros(breakpoint, 1 , CV_32FC1);
+  Mat trainingDataMat = Mat::zeros(breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=0; i<breakpoint;i++){
+    //targets[i] or targets[i]-1?
+    labelsMat.at<float>(i,0) = targets[i];
+    for (int j=0; j<binning_xs[i].size();j++){
+      trainingDataMat.at<float>(i,j) = binning_xs[i][j];
+    }
+  }
+    
+  Mat testLabelsMat = Mat::zeros(targets.size()-breakpoint, 1, CV_32FC1);
+  Mat testingDataMat = Mat::zeros(binning_xs.size()-breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=breakpoint; i<binning_xs.size();i++){
+    testLabelsMat.at<float>(i-breakpoint,0) = targets[i];
+    for (int j=0; j<binning_xs[i].size();j++){
+      testingDataMat.at<float>(i-breakpoint,j) = binning_xs[i][j];
+    }
   }
 
+
+  // Train the SVM
+  CvNormalBayesClassifier NBC;
+  NBC.train(trainingDataMat, labelsMat, Mat(), Mat());
+  
+  /*float err=0;
+  for (int i =0; i<binning_xs.size();i++){
+    Mat sample = trainingDataMat.row(i);
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+    if (SVM.predict(sample)!=targets[i]){
+      err += 1;
+    }
+  }
+  cout<<"err: "<<err/targets.size()<<endl;*/
+  float err=0;
+  for (int i =0; i<breakpoint;i++){
+    if (NBC.predict(trainingDataMat.row(i))!=targets[i]){
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"trainning err = "<<err/breakpoint<<endl;
+  
+  err=0;
+  for (int i = 0; i< testingDataMat.rows;i++){
+    if (NBC.predict(testingDataMat.row(i))!=targets[i+breakpoint]){
+    
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
+}
+void try_SVM(){
+  /*// Set up training data
+  Mat labelsMat(targets.size(), 1, CV_32FC1);
+  for (int i=0; i<targets.size();i++){
+    labelsMat.at<float>(i,0) = targets[i];
+  }
+
+  Mat trainingDataMat(binning_xs.size(), binning_xs[0].size(), CV_32FC1);
+  for (int i=0; i<binning_xs.size();i++){
+    for (int j=0; j<binning_xs[i].size();j++){
+      trainingDataMat.at<float>(i,j) = binning_xs[i][j];
+    }
+  }*/
+
+  //70% data for training
+  int breakpoint = (targets.size()*7)/10;
+  // Set up training data
+  Mat labelsMat = Mat::zeros(breakpoint, 1 , CV_32FC1);
+  Mat trainingDataMat = Mat::zeros(breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=0; i<breakpoint;i++){
+    //targets[i] or targets[i]-1?
+    labelsMat.at<float>(i,0) = targets[i];
+    for (int j=0; j<binning_xs[i].size();j++){
+      trainingDataMat.at<float>(i,j) = binning_xs[i][j];
+    }
+  }
+    
+  Mat testLabelsMat = Mat::zeros(targets.size()-breakpoint, 1, CV_32FC1);
+  Mat testingDataMat = Mat::zeros(binning_xs.size()-breakpoint, binning_xs[0].size(), CV_32FC1);
+  for (int i=breakpoint; i<binning_xs.size();i++){
+    testLabelsMat.at<float>(i-breakpoint,0) = targets[i];
+    for (int j=0; j<binning_xs[i].size();j++){
+      testingDataMat.at<float>(i-breakpoint,j) = binning_xs[i][j];
+    }
+  }
 
   // Set up SVM's parameters
   CvSVMParams params;
@@ -109,7 +199,8 @@ void try_SVM(){
   // Train the SVM
   CvSVM SVM;
   SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-  float err=0;
+  
+  /*float err=0;
   for (int i =0; i<binning_xs.size();i++){
     Mat sample = trainingDataMat.row(i);
     //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
@@ -117,43 +208,65 @@ void try_SVM(){
       err += 1;
     }
   }
-  cout<<"err: "<<err/targets.size()<<endl;
+  cout<<"err: "<<err/targets.size()<<endl;*/
+  float err=0;
+  for (int i =0; i<breakpoint;i++){
+    if (SVM.predict(trainingDataMat.row(i))!=targets[i]){
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"trainning err = "<<err/breakpoint<<endl;
+  
+  err=0;
+  for (int i = 0; i< testingDataMat.rows;i++){
+    if (SVM.predict(testingDataMat.row(i))!=targets[i+breakpoint]){
+    
+    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
+      err += 1;
+    }
+  }
+  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
 }
 
 
 void try_NN(){
+  /*cout<<"whole set:"<<endl;
+  for (int i =0; i< targets.size();i++){
+    cout<<"lable = "<<targets[i]<<";  ";
+    for (int j = 0; j < binning_xs[i].size();j++){
+      cout <<binning_xs[i][j]<<" ";
+    }
+    cout << endl;
+  }*/
+
   //70% data for training
   int breakpoint = (targets.size()*7)/10;
   // Set up training data
-  Mat labelsMat(breakpoint, num_of_classes, CV_32FC1);
+  Mat labelsMat = Mat::zeros(breakpoint, num_of_classes, CV_32FC1);
+  Mat trainingDataMat = Mat::zeros(breakpoint, binning_xs[0].size(), CV_32FC1);
   for (int i=0; i<breakpoint;i++){
+    //targets[i] or targets[i]-1?
     labelsMat.at<float>(i,targets[i]) = 1.0;
-  }
-
-  Mat trainingDataMat(breakpoint, binning_xs[0].size(), CV_32FC1);
-  for (int i=0; i<breakpoint;i++){
     for (int j=0; j<binning_xs[i].size();j++){
       trainingDataMat.at<float>(i,j) = binning_xs[i][j];
     }
   }
-
-  
-  Mat testLabelsMat(targets.size()-breakpoint, num_of_classes, CV_32FC1);
-  for (int i=breakpoint; i<targets.size();i++){
-    testLabelsMat.at<float>(i,targets[i]) = 1.0;
-  }
-
-  Mat testingDataMat(binning_xs.size()-breakpoint, binning_xs[0].size(), CV_32FC1);
+    
+  Mat testLabelsMat = Mat::zeros(targets.size()-breakpoint, num_of_classes, CV_32FC1);
+  Mat testingDataMat = Mat::zeros(binning_xs.size()-breakpoint, binning_xs[0].size(), CV_32FC1);
   for (int i=breakpoint; i<binning_xs.size();i++){
+    testLabelsMat.at<float>(i-breakpoint,targets[i]) = 1.0;
     for (int j=0; j<binning_xs[i].size();j++){
-      testingDataMat.at<float>(i,j) = binning_xs[i][j];
+      testingDataMat.at<float>(i-breakpoint,j) = binning_xs[i][j];
     }
   }
-
+  
   cout<<binning_xs[0].size()<<" "<<num_of_classes<<endl;
-  int layers_d[] = { binning_xs[0].size(),binning_xs[0].size()/2,10, 10,  num_of_classes};
-  Mat layers = Mat(1,5,CV_32SC1);
-  for (int i = 0; i < 5; i++){
+  int layers_d[] = { binning_xs[0].size(), 20,  num_of_classes};
+  Mat layers = Mat(1,3,CV_32SC1);
+  for (int i = 0; i < 3; i++){
+    cout << "layer "<<i<<" :"<<layers_d[i]<<endl;
     layers.at<int>(0,i) = layers_d[i];
   }
   // create the network using a sigmoid function with alpha and beta
@@ -187,6 +300,7 @@ void try_NN(){
     for (int j = 0;j<num_of_classes;j++){
       if (response.at<float>(0,j) > max){
         res = j;
+        max = response.at<float>(0,j);
       }
     }
     if (res!=targets[i]){
@@ -234,7 +348,6 @@ void analyze_params(int argc, char ** argv){
   int opt= 0;
 
   //Specifying the expected options
-  //The two options l and b expect numbers as argument
   static struct option long_options[] = {
       {"data",      required_argument, 0,  'd' },
       {"tempDir",   required_argument, 0,  't' },
@@ -311,7 +424,9 @@ int main(int argc, char** argv){
   }*/
  
   //try neural network
-  try_NN();
+  //try_NN();
+  //try_SVM();
+  try_NBC();
 
   free(patternSet);
   free(divider);
