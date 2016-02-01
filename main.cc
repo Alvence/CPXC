@@ -393,7 +393,7 @@ int main(int argc, char** argv){
 
   num_of_attributes = ds->num_attributes();
   BinDivider* divider= new BinDivider();
-  divider->init(ds,5);
+  divider->init_equal_width(ds,5);
 
   //sava binning temp data file
   printf("saving binning data to %s\n",tempDataFile);
@@ -425,8 +425,8 @@ int main(int argc, char** argv){
  
   //try neural network
   //try_NN();
-  //try_SVM();
-  try_NBC();
+  try_SVM();
+  //try_NBC();
 
   free(patternSet);
   free(divider);

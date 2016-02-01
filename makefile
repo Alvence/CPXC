@@ -12,13 +12,13 @@ ARFFLIB	 := arff
 
 SRCFILES := $(shell find $(SRCDIR) -name "*.cc")
 #OBJFILES := $(patsubst %.cc,%.o,$(SRCFILES))
-OBJFILES := BinDivider.o CP.o Utils.o
+OBJFILES := Utils.o BinDivider.o CP.o
 
 CC      := g++
 MAKE    := make
 RM 			:= rm
 CFLAGS := -g -w 
-LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc
+LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc 
 INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IDPM
 LD       := g++
 LDFLAGS  := -g -Wall -shared
