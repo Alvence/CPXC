@@ -26,18 +26,26 @@
 using namespace cv;
 using namespace std;
 
+enum ClassifierAlg{ALG_SVM=0, ALG_NN, ALG_NBC};
+
 char datafile[256];
 char tempDir[256];
+char testfile[256];
 int classIndex;
 int min_sup = 1;
 int delta = 100;
+StoppingCreteria sc = NEVER;
+bool equalwidth = false;
+ClassifierAlg alg = ALG_NBC;
 
 int num_of_attributes;
 int num_of_classes;
 
-vector<int> targets;
-vector<vector<int> > xs;
-vector<vector<int> > binning_xs;
+vector<int>* targets;
+vector<vector<int>*> *xs;
+vector<vector<int>*> *binning_xs;
+vector<int> * test_targets;
+vector<vector<int>*> *test_xs;
 
 int get_bin_value(ArffData* ds, string nominal, int attr_index){
   string name = ds->get_attr(attr_index)->name();
@@ -59,7 +67,11 @@ int bin_value(ArffValue *v, ArffData* ds, BinDivider* divider, int index){
   return str;
 }
 
-void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int classIndex){
+void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * X, vector<int> * t){
+  free_p(X);
+  free_p(t);
+  X = new vector<vector<int>*>();
+  t = new vector<int>();
   ofstream out;
   out.open(file, ios::out);
   for (int i = 0; i != ds->num_instances(); i++){
@@ -67,8 +79,8 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
     ArffValue* y = x->get(classIndex);
     int target = bin_value(y,ds,divider,classIndex)%256;
     out<<target;
-    targets.push_back(target);
-    vector<int> ins;
+    t->push_back(target);
+    vector<int> *ins = new vector<int>();
     for (int j = 0; j != ds->num_attributes(); j++){
       if (j==classIndex) continue;
       ArffValue* v = x->get(j);
@@ -76,10 +88,10 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
       if (!v->missing()){
         int val = bin_value(v,ds,divider,j);
         out<<" "<<val;
-        ins.push_back(val);
+        ins->push_back(val);
       }
     }
-    xs.push_back(ins);
+    xs->push_back(ins);
     out << endl;
   }
   out.close();
@@ -343,25 +355,30 @@ void print_usage() {
 }
   
 
-
 void analyze_params(int argc, char ** argv){
   int opt= 0;
 
   //Specifying the expected options
   static struct option long_options[] = {
       {"data",      required_argument, 0,  'd' },
+      {"testfile",  required_argument, 0,  'b' },
       {"tempDir",   required_argument, 0,  't' },
       {"classIndex",required_argument, 0,  'c' },
       {"min_sup",   required_argument, 0,  's' },
       {"delta",     required_argument, 0,  'l' },
+      {"stopc",     optional_argument, 0,  'o' },
+      {"eq",     optional_argument, 0,  'e' },
+      {"alg",     optional_argument, 0,  'a' },
       {0,           0,                 0,  0   }
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"d:t:c:s:l:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
+        break;
+      case 'b' : strcpy(testfile,optarg);
         break;
       case 't' : strcpy(tempDir,optarg);
         break;
@@ -370,6 +387,26 @@ void analyze_params(int argc, char ** argv){
       case 's' : min_sup = atoi(optarg);
         break;
       case 'l' : delta = atoi(optarg);
+        break;
+      case 'a':
+        if (strcmp(optarg,"svm") == 0){
+          alg = ALG_SVM;
+        } else if (strcmp(optarg, "nn")==0){
+          alg = ALG_NN;
+        } else {
+          alg = ALG_NBC;
+        }
+        break;
+      case 'o' : 
+        if (strcmp(optarg,"threshold") == 0){
+          sc = THRESHOLD;
+        } else if (strcmp(optarg, "RANDOM")==0){
+          sc = RANDOM;
+        } else {
+          sc = NEVER;
+        }
+        break;
+      case 'e' : equalwidth = true;
         break;
       default: print_usage(); 
                exit(EXIT_FAILURE);
@@ -381,24 +418,36 @@ int main(int argc, char** argv){
   analyze_params(argc,argv);
 
   char tempDataFile[32];
+  char tempTestFile[32];
   strcpy(tempDataFile,tempDir);
+  strcpy(tempTestFile,tempDir);
   strcat(tempDataFile,"/binningData.txt");
+  strcat(tempTestFile,"/testData.txt");
 
   //open data file with arff format
   ArffParser parser(datafile);
   //parse the data
   ArffData *ds = parser.parse();
+  //open test data
+  ArffParser test_parser(testfile);
+  ArffData *test_ds= test_parser.parse();
   
   printf("Successfully finish reading the data!\n");
 
   num_of_attributes = ds->num_attributes();
   BinDivider* divider= new BinDivider();
-  //divider->init_equal_width(ds,5);
-  divider->init_minimal_entropy(ds, classIndex);
-/*
-  //sava binning temp data file
-  printf("saving binning data to %s\n",tempDataFile);
+  if (equalwidth){
+    divider->init_equal_width(ds,5);
+  }else{
+    divider->init_minimal_entropy(ds, classIndex, sc);
+  }
+  //sava training temp data file
+  printf("saving training data to %s\n",tempDataFile);
   generate_binning_data(tempDataFile, ds, divider, classIndex);
+
+  //save testing temp data file
+  printf("saving testing data to %s\n", tempTestFile);
+  generate_binning_data(tempTestFile, test_ds, divider, classIndex);
 
   num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   
@@ -423,13 +472,27 @@ int main(int argc, char** argv){
   //  print_vector(xs[i]);
   //  print_vector(binning_xs[i]);
   //}
- 
+
+  switch(alg){
+    case ALG_SVM:
+      try_SVM();
+      break;
+    case ALG_NN:
+      try_NN();
+      break;
+    case ALG_NBC:
+      try_NBC();
+      break;
+    default:
+      break;
+
+  }
   //try neural network
   //try_NN();
-  try_SVM();
+  //try_SVM();
   //try_NBC();
   
-  free(patternSet);*/
+  free(patternSet);
   free(divider);
   return 0;
 }

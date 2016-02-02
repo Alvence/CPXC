@@ -7,6 +7,7 @@
 #include <arff_data.h>
 
 enum DiscretizationMethod{EQUAL_WIDTH=0, MINIMAL_ENTROPY};
+enum StoppingCreteria{THRESHOLD=0, NEVER, RANDOM};
 
 class BinDivider{
 private:
@@ -21,7 +22,7 @@ public:
     ~BinDivider();
 
     void init_equal_width(ArffData* ds, int n);
-    void init_minimal_entropy(ArffData* ds, int label_index);
+    void init_minimal_entropy(ArffData* ds, int label_index, StoppingCreteria sc);
     float get_max(int attr_index);
     float get_min(int attr_index);
     int get_bin_value(float val, int attr_index);

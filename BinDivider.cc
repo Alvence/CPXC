@@ -106,7 +106,7 @@ float entropy(vector<float> set, vector<int> labels, float cutting_point, int nu
   ent = labels1.size()*1.0/labels.size()*entropy(sub1,labels1,num_classes) + labels2.size()*1.0/labels.size()*entropy(sub2,labels2,num_classes);  
   return ent;
 }
-void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, int num_classes){
+void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, int num_classes, StoppingCreteria sc){
   vector<float> temp(set);
   vector<float> cutting_points;
   //calculate distinct values in order to find cutting points candidate
@@ -136,22 +136,31 @@ void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, i
       max_gain = gain;
     }
   }
+  dividers->push_back(cutting_point);
   vector<float> sub1, sub2;
   vector<int> labels1, labels2;
   int k1=0,k2=0;
   divide(set, labels, sub1, labels1, sub2, labels2, cutting_point, k1, k2);
-  int k = k1+k2;
-  int N = set.size();
-  ////for more about this threshold, see Fayyad&Irani,1993
-  float delta = log2(pow(3,k)-2) - (k*marginal_entropy- k1*entropy(sub1,labels1,num_classes)-k2* entropy(sub2, labels2, num_classes));
-  float threshold = (log2(N-1) + delta)*1.0/N;
-  ////cout<<"cutting point="<<cutting_point<<" k1="<<k1<<"  k2="<<k2<<"  delta="<<delta<<" thre="<<threshold<<endl;
-  if (max_gain < threshold){
-    return;
-  } else{
-    dividers->push_back(cutting_point);
-    discretize(sub1,labels1,dividers, num_classes);
-    discretize(sub2,labels2,dividers, num_classes);
+  
+  if (THRESHOLD == sc){
+    int k = k1+k2;
+    int N = set.size();
+    //for more about this threshold, see Fayyad&Irani,1993
+    float delta = log2(pow(3,k)-2) - (k*marginal_entropy- k1*entropy(sub1,labels1,num_classes)-k2* entropy(sub2, labels2, num_classes));
+    float threshold = (log2(N-1) + delta)*1.0/N;
+    ////cout<<"cutting point="<<cutting_point<<" k1="<<k1<<"  k2="<<k2<<"  delta="<<delta<<" thre="<<threshold<<endl;
+    if (max_gain < threshold){
+      return;
+    }
+  }else if (RANDOM == sc){
+    
+  }
+  
+  if (k1 > 1){
+    discretize(sub1,labels1,dividers, num_classes, sc);
+  }
+  if (k2 > 1){
+    discretize(sub2,labels2,dividers, num_classes, sc);
   }
 }
 
@@ -165,7 +174,7 @@ int get_nominal_value(ArffData* ds, string nominal, int attr_index){
   return value;
 }
 
-void BinDivider::init_minimal_entropy(ArffData* ds, int label_index){
+void BinDivider::init_minimal_entropy(ArffData* ds, int label_index, StoppingCreteria sc){
   int dim = ds->num_attributes();
   int num_ins = ds->num_instances();
   int num_bins = 0;
@@ -190,7 +199,7 @@ void BinDivider::init_minimal_entropy(ArffData* ds, int label_index){
         set.push_back((float)(*v));
       }
     }
-    discretize(set, labels, dividers, ds->get_nominal(ds->get_attr(label_index)->name()).size());
+    discretize(set, labels, dividers, ds->get_nominal(ds->get_attr(label_index)->name()).size(), sc);
     bin_list->at(j) = dividers;
     cout<<"for att "<<j<<endl;
     print_vector(dividers);
@@ -252,12 +261,12 @@ void BinDivider::init_equal_width(ArffData* ds, int n){
         //printf("%4f ",bin_list->at(j)->at(k));
       }
       //printf("\n");
-      print_vector(bin_list->at(j));
+      ////print_vector(bin_list->at(j));
     }
   }
-  for (int j = 0; j != ds->num_attributes(); j++){
-    printf("For attributes %d: max=%5f min=%5f\n",j, maxs->at(j), mins->at(j));
-  }
+  ////for (int j = 0; j != ds->num_attributes(); j++){
+ ////   printf("For attributes %d: max=%5f min=%5f\n",j, maxs->at(j), mins->at(j));
+ //// }
 }
 
 BinDivider::BinDivider(){
