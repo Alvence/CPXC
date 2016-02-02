@@ -46,7 +46,7 @@ int get_bin_value(ArffData* ds, string nominal, int attr_index){
   while (value < nominals.size() && nominals[value]!=nominal){
     value++;
   }
-  return (attr_index+1)*10 + value;
+  return (attr_index+1)*256 + value;
 }
 
 int bin_value(ArffValue *v, ArffData* ds, BinDivider* divider, int index){
@@ -65,7 +65,7 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
   for (int i = 0; i != ds->num_instances(); i++){
     ArffInstance* x = ds->get_instance(i);
     ArffValue* y = x->get(classIndex);
-    int target = bin_value(y,ds,divider,classIndex)%10;
+    int target = bin_value(y,ds,divider,classIndex)%256;
     out<<target;
     targets.push_back(target);
     vector<int> ins;
@@ -393,8 +393,9 @@ int main(int argc, char** argv){
 
   num_of_attributes = ds->num_attributes();
   BinDivider* divider= new BinDivider();
-  divider->init_equal_width(ds,5);
-
+  //divider->init_equal_width(ds,5);
+  divider->init_minimal_entropy(ds, classIndex);
+/*
   //sava binning temp data file
   printf("saving binning data to %s\n",tempDataFile);
   generate_binning_data(tempDataFile, ds, divider, classIndex);
@@ -418,17 +419,17 @@ int main(int argc, char** argv){
   cout<<"translating input"<<endl;
   translate_input(patternSet);
   
-  /*for (int i = 0;i<xs.size();i++){
-    print_vector(xs[i]);
-    print_vector(binning_xs[i]);
-  }*/
+  //for (int i = 0;i<xs.size();i++){
+  //  print_vector(xs[i]);
+  //  print_vector(binning_xs[i]);
+  //}
  
   //try neural network
   //try_NN();
   try_SVM();
   //try_NBC();
-
-  free(patternSet);
+  
+  free(patternSet);*/
   free(divider);
   return 0;
 }
