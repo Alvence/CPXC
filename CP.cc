@@ -61,10 +61,11 @@ float entropy(int count, int N){
   return ent;
 }
 
-float expectedMI(int contigency[][2], int N){
+float expectedMI(int contigency[][2], int N, float &EMI_bound){
   float expMI = 0.0;
   float E3[2][2];
   float EPLNP[2][2];
+  float bound[2][2];
   int a[2];
   int b[2];
   for (int i = 0; i < 2; i++){
@@ -77,6 +78,7 @@ float expectedMI(int contigency[][2], int N){
       E3[i][j] = ab/(N*N) * log(ab/(N*N));
       //std::cout<<i<<","<<j<<":  "<<E3[i][j]<<"\n";
       EPLNP[i][j]=0;
+      bound[i][j]=0;
     }
   }
   
@@ -140,23 +142,27 @@ float expectedMI(int contigency[][2], int N){
       ////cout<<p0<<endl;
       sumPnij = 0.0;
       EPLNP[i][j] = nij * log(nij*1.0/N)*p0;
-      float p1 = p0 *(a[i]-nij)*(b[j]-nij)*1.0/(nij+1)/(N-a[i]-b[j]+nij+1);
+      float p1 = p0 *(a[i]-nij)*(b[j]-nij)*1.0/(nij*1.0+1)/(N*1.0-a[i]-b[j]+nij+1);
 
 
       for (nij = lower+1; nij <=upper;nij++){
         sumPnij = sumPnij+p1;
         EPLNP[i][j] = EPLNP[i][j]+nij*log(nij*1.0/N)*p1;
-        p1 = p1 * (a[i]-nij)*(b[j]-nij)*1.0/(nij+1)/(N-a[i]-b[j]+nij+1);
+        p1 = p1 * (a[i]-nij)*(b[j]-nij)*1.0/(nij*1.0+1)/(N*1.0-a[i]-b[j]+nij+1);
       }
+      float CC= N*(a[i]-1)*(b[j]-1)*1.0/a[i]/b[j]/(N*1.0-1)+N*1.0/a[i]/b[j];
+      bound[i][j]=a[i]*b[j]*1.0/(N*N*1.0)*log(CC);  
+
     }
   }
+  EMI_bound = 0.0;
   for (int i = 0; i < 2; i++){
     for(int j = 0; j < 2;j++){
       expMI += (EPLNP[i][j]-E3[i][j]);
+      EMI_bound += bound[i][j];
     }
   }
 
-  cout<<expMI<<endl;
   return expMI;
 }
 
@@ -238,7 +244,8 @@ float AMI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
   ent1 = entropy(n1,N);
   ent2 = entropy(n2,N);
   mi = MI(contigency, N);
-  expMI = expectedMI(contigency,N);
+  float EMI_b = 0.0;
+  expMI = expectedMI(contigency,N,EMI_b);
 
 /*  p1.print();
   p2.print();
@@ -247,16 +254,19 @@ float AMI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
     print_vector(xs->at(i));
   }
 
-  //TODO
   for (int i = 0;i<2;i++){
     for (int j = 0; j < 2; j++){
       cout<<contigency[i][j]<<" ";
     }
     cout<<endl;
   }*/
-  ////cout <<"ent1="<<ent1<<"  ent2="<<ent2<<"  mi="<<mi<<"  expMI="<<expMI<<endl;
+  //cout <<"ent1="<<ent1<<"  ent2="<<ent2<<"  mi="<<mi<<"  expMI="<<expMI<<"  EMI_bound="<<EMI_b<<endl;
   
   ami = (mi-expMI)/((ent1>ent2?ent1:ent2)-expMI);
+  if (fabs(expMI)>EMI_b){
+    ami = mi/sqrt(ent1*ent2);
+  }
+  
   return ami;
 }
 
@@ -267,16 +277,31 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs){
     vector<float> temp(size,0);
     matrix.push_back(temp);
   }
+  vector<int> stat(10,0);
+  int neg = 0;
+  int gto = 0;//greater than one
   for (int i = 0; i < size; i++){
     for (int j = i + 1; j < size; j++){
       matrix[i][j] = AMI(patterns[i],patterns[j],xs);
       matrix[j][i] = matrix[i][j];
       if (matrix[i][j] > 0.4){
         cout<<"prune: ("<<i<<","<<j<<"): "<<matrix[i][j]<<endl;
-        
+              
       }
+      int loc = (int)(matrix[i][j]*10);
+      
+      if (loc>=0&&loc<10)
+        stat[loc]++;
+      else if(loc<0)
+        neg++;
+      else 
+        gto++;
     }
   }
+
+  print_vector(stat);
+  cout<<"neg: "<<neg<<"    gto: "<<gto<<endl;
+
   //TODO
 }
 

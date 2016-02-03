@@ -31,8 +31,8 @@ enum ClassifierAlg{ALG_SVM=0, ALG_NN, ALG_NBC};
 char datafile[256];
 char tempDir[256];
 char testfile[256];
-int classIndex;
-int min_sup = 1;
+int classIndex=-1;
+int min_sup = -1;
 int delta = 100;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
@@ -324,8 +324,8 @@ void analyze_params(int argc, char ** argv){
       {"data",      required_argument, 0,  'd' },
       {"testfile",  required_argument, 0,  'b' },
       {"tempDir",   required_argument, 0,  't' },
-      {"classIndex",required_argument, 0,  'c' },
-      {"min_sup",   required_argument, 0,  's' },
+      {"classIndex",optional_argument, 0,  'c' },
+      {"min_sup",   optional_argument, 0,  's' },
       {"delta",     required_argument, 0,  'l' },
       {"stopc",     optional_argument, 0,  'o' },
       {"eq",     optional_argument, 0,  'e' },
@@ -395,7 +395,19 @@ int main(int argc, char** argv){
   
   printf("Successfully finish reading the data!\n");
 
+  cout<<"num of instances="<<ds->num_instances()<<endl;
+
   num_of_attributes = ds->num_attributes();
+  if (classIndex == -1){
+    classIndex = num_of_attributes - 1;
+  }
+  if (min_sup<0){
+    min_sup = ds->num_instances()*0.01;
+    if (min_sup<=1){
+      min_sup = 1;
+    }
+    cout<<"set min_sup="<<min_sup<<endl;
+  }
   BinDivider* divider= new BinDivider();
   if (equalwidth){
     divider->init_equal_width(ds,5);
@@ -427,11 +439,11 @@ int main(int argc, char** argv){
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
 
-  patternSet->prune_AMI(binning_xs);
+  //patternSet->prune_AMI(binning_xs);
   //patternSet->print();
 
   //translate input
-/*  cout<<"translating input"<<endl;
+  cout<<"translating input"<<endl;
   translate_input(patternSet, binning_xs, xs);
   translate_input(patternSet, test_binning_xs,test_xs);
   
@@ -454,7 +466,7 @@ int main(int argc, char** argv){
     default:
       break;
 
-  }*/
+  }
   //try neural network
   //try_NN();
   //try_SVM();
