@@ -19,8 +19,21 @@ Pattern::Pattern(int n, vector<int> is){
   this->items = is;
 }
 
+void Pattern::merge(Pattern p){
+    this->union_patterns.push_back(p);
+}
+
 bool Pattern::match(vector<int> instance){
-  return isSubset(instance, items);
+  if( isSubset(instance, items)){
+    return true;
+  }else{
+    for (int i = 0; i < this->union_patterns.size(); i++){
+        if (isSubset(instance, union_patterns[i].items)){
+            return true;
+        }
+    }
+  }
+  return false;
 }
 
 void Pattern::print(){
@@ -29,6 +42,47 @@ void Pattern::print(){
     cout<<" "<<items[i];
   }
   cout<<endl;
+}
+
+float entropy(Pattern &p, vector<vector<int>*>* const xs){
+  //TODO
+}
+
+float expectedMI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
+  //TODO
+}
+
+float MI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
+  //TODO
+}
+
+float AMI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
+  float ami = 0.0;
+  float mi = 0.0;
+  float expMI = 0.0;
+  float ent1 = 0.0;
+  float ent2 = 0.0;
+
+  //TODO
+  
+  ami = (mi-expMI)/((ent1>ent2?ent1:ent2)-expMI);
+  return ami;
+}
+
+void PatternSet::prune_AMI(vector<vector<int>*>* xs){
+  vector<vector<float> > matrix;
+  //initialize a n*n matrix
+  for (int i = 0; i < size; i++){
+    vector<float> temp(size,0);
+    matrix.push_back(temp);
+  }
+  for (int i = 0; i < size; i++){
+    for (int j = i + 1; j < size; j++){
+      matrix[i][j] = AMI(patterns[i],patterns[j],xs);
+      matrix[j][i] = matrix[i][j];
+    }
+  }
+  //TODO
 }
 
 void PatternSet::read(char* file){
