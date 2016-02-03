@@ -426,10 +426,12 @@ int main(int argc, char** argv){
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
+
+  patternSet->prune_AMI(binning_xs);
   //patternSet->print();
 
   //translate input
-  cout<<"translating input"<<endl;
+/*  cout<<"translating input"<<endl;
   translate_input(patternSet, binning_xs, xs);
   translate_input(patternSet, test_binning_xs,test_xs);
   
@@ -452,7 +454,7 @@ int main(int argc, char** argv){
     default:
       break;
 
-  }
+  }*/
   //try neural network
   //try_NN();
   //try_SVM();

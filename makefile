@@ -36,8 +36,8 @@ LIBS:
 $(TARGET): $(OBJECTS) main.cc
 	$(CC) $(CFLAGS)  $(INCLUDE) $(OBJFILES)  -o $@ $<  $(LFLAGS)
 
-test: arff_test.cc 
-	$(CC) $(CFLAGS)  $(INCLUDE) -o $@ $<  $(LFLAGS)
+test: $(OBJECTS) test.cc 
+	$(CC) $(CFLAGS)  $(INCLUDE) $(OBJECTS)   -o $@ $<  $(LFLAGS)
 
 ### mostly generic ###
 %.o: %.cc
