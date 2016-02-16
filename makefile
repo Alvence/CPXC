@@ -12,7 +12,7 @@ ARFFLIB	 := arff
 
 SRCFILES := $(shell find $(SRCDIR) -name "*.cc")
 #OBJFILES := $(patsubst %.cc,%.o,$(SRCFILES))
-OBJFILES := Utils.o BinDivider.o CP.o
+OBJFILES := MLAlg.o BinDivider.o CP.o
 
 CC      := g++
 MAKE    := make

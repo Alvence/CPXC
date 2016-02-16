@@ -22,6 +22,7 @@
 #include "BinDivider.h"
 #include "CP.h"
 #include "Utils.h"
+#include "MLAlg.h"
 
 using namespace cv;
 using namespace std;
@@ -167,7 +168,7 @@ void try_NBC(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vec
   }
   cout<<"testing err = "<<err/testingDataMat.rows<<endl;
 }
-
+/*
 template <class T>
 void try_SVM(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vector<T>* >* testing_X, vector<int> * testing_Y){
   // Set up training data
@@ -189,15 +190,6 @@ void try_SVM(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vec
   CvSVM SVM;
   SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
   
-  /*float err=0;
-  for (int i =0; i<binning_xs.size();i++){
-    Mat sample = trainingDataMat.row(i);
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-    if (SVM.predict(sample)!=targets[i]){
-      err += 1;
-    }
-  }
-  cout<<"err: "<<err/targets.size()<<endl;*/
   float err=0;
   for (int i =0; i< trainingDataMat.rows;i++){
     if (fabs(SVM.predict(trainingDataMat.row(i))- training_Y->at(i))>1e-7){
@@ -217,7 +209,7 @@ void try_SVM(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vec
   }
   cout<<"testing err = "<<err/testingDataMat.rows<<endl;
 }
-
+*/
 
 template <class T>
 void try_NN(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vector<T>* >* testing_X, vector<int> * testing_Y){
