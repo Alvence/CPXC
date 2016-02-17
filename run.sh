@@ -1,1 +1,1 @@
-./main -t temp -l 100  -d data/vote.data -b data/vote.test -a nbc -s 40
+./main -t temp -l 100  -d data/iris.arff -b data/iris.arff -a svm -s 4

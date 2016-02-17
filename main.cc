@@ -447,7 +447,8 @@ int main(int argc, char** argv){
   cout<<"start training and testing"<<endl;
   switch(alg){
     case ALG_SVM:
-      try_SVM(xs,targets,test_xs,test_targets);
+      //try_SVM(xs,targets,test_xs,test_targets);
+      try_SVM(xs,targets,10);
       break;
     case ALG_NN:
       try_NN(xs,targets,test_xs,test_targets);

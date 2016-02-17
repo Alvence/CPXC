@@ -1,6 +1,7 @@
 #include "MLAlg.h"
 
 #include <vector>
+#include <iostream>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -48,7 +49,7 @@ float try_SVM(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<
   CvSVMParams params;
   params.svm_type    = CvSVM::C_SVC;
   params.kernel_type = CvSVM::LINEAR;
-  params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
+  params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
 
   // Train the SVM
   CvSVM SVM;
@@ -73,4 +74,49 @@ float try_SVM(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<
   }
   //cout<<"testing err = "<<err/testingDataMat.rows<<endl;
   return err*1.0/testingDataMat.rows;
+}
+
+//return testing error with n-fold cross validation
+float try_SVM(std::vector<std::vector<int>*> *training_X, std::vector<int> *training_Y, int fold){
+  vector<float> errs;
+  float err = 0.0;
+  int N = training_X->size();
+  //int N = 59;
+  float stepsize = N*1.0/fold;
+  float start = 0;
+  float end = start + stepsize;
+  for (int n = 0; n < fold; n++){
+    int first = (int)start;
+    start = end;
+    int last = (int)end;
+    end += stepsize;
+    if (end > N){
+      end = N;
+    }
+    //cout << "first = "<<first<<"  last = "<<last<<endl;
+    vector<vector<int>*> *x = new vector<vector<int>*>();
+    vector<int> *y = new vector<int>();
+    vector<vector<int>*> *tx = new vector<vector<int>*>();
+    vector<int> *ty = new vector<int>();
+    
+    for (int i = 0; i < N; i++){
+      //extract instances for testing
+      if (i<last && i >= first){
+        tx->push_back(training_X->at(i));
+        ty->push_back(training_Y->at(i));
+      } else{
+        x->push_back(training_X->at(i));
+        y->push_back(training_Y->at(i));
+      }
+    }
+    float cv_err = try_SVM(x,y,tx,ty);
+    errs.push_back(cv_err);
+    err+=cv_err;
+    cout<<"fold "<<n<<":  err="<<cv_err<<"   ["<<first<<","<<last<<")"<<endl;
+    delete ty;
+    delete tx;
+    delete y;
+    delete x;
+  }
+  return err/fold;
 }
