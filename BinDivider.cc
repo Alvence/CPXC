@@ -286,5 +286,5 @@ int BinDivider::get_bin_value(float val, int attr_index){
   while(value<bin->size() && bin->at(value)<=val){
     value++;
   }
-  return (attr_index+1)*256+value;
+  return ((attr_index+1)<<ATTR_SHIFT)+value;
 }

@@ -5,7 +5,7 @@
 #include <string>
 
 #include <arff_data.h>
-
+const int ATTR_SHIFT = 10;
 enum DiscretizationMethod{EQUAL_WIDTH=0, MINIMAL_ENTROPY};
 enum StoppingCreteria{THRESHOLD=0, NEVER, RANDOM};
 

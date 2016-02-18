@@ -34,11 +34,12 @@ char tempDir[256];
 char testfile[256];
 int classIndex=-1;
 int min_sup = -1;
-int delta = 100;
+int delta = 6;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
+bool testProvided = false;
 ClassifierAlg alg = ALG_NBC;
-
+int cv_fold = 10;
 int num_of_attributes;
 int num_of_classes;
 
@@ -56,7 +57,7 @@ int get_bin_value(ArffData* ds, string nominal, int attr_index){
   while (value < nominals.size() && nominals[value]!=nominal){
     value++;
   }
-  return (attr_index+1)*256 + value;
+  return ((attr_index+1)<<ATTR_SHIFT) + value;
 }
 
 int bin_value(ArffValue *v, ArffData* ds, BinDivider* divider, int index){
@@ -79,7 +80,9 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
   for (int i = 0; i != ds->num_instances(); i++){
     ArffInstance* x = ds->get_instance(i);
     ArffValue* y = x->get(classIndex);
-    int target = bin_value(y,ds,divider,classIndex)%256;
+    int target = bin_value(y,ds,divider,classIndex);
+    //remove higher bits representing the attributes indexs
+    target = target & ((1<<ATTR_SHIFT)-1);
     out<<target;
     t->push_back(target);
     vector<int> *ins = new vector<int>();
@@ -97,199 +100,6 @@ void generate_binning_data(char* file, ArffData* ds, BinDivider* divider, int cl
     out << endl;
   }
   out.close();
-}
-
-template <class T>
-void vectorToMat(vector<T>* vec, Mat &mat){
-  //TODO makesure dimensions are equal
-  for (int i = 0; i < vec->size(); i++){
-    mat.at<float>(i,0) = vec->at(i);
-  }
-}
-
-template <class T>
-void vectorToMat_1ofKCoding(vector<T>* vec, Mat &mat, int num_classes){
-  //TODO makesure dimensions are equal
-  for (int i = 0; i < vec->size(); i++){
-    mat.at<float>(i,vec->at(i)) = 1.0;
-  }
-}
-template <class T>
-void vectorsToMat(vector<vector<T>*>*vecs, Mat &mat){
-  //TODO make sure dimensions are equal 
-  for (int i = 0; i < vecs->size(); i++){
-    for (int j = 0; j < vecs->at(i)->size(); j++){
-      mat.at<float>(i,j) = vecs->at(i)->at(j);
-    }
-  }
-}
-
-template <class T>
-void try_NBC(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vector<T>* >* testing_X, vector<int> * testing_Y){
-  // Set up training data
-  Mat labelsMat = Mat::zeros(training_Y->size(), 1 , CV_32FC1);
-  Mat trainingDataMat = Mat::zeros(training_X->size(), training_X->at(0)->size(), CV_32FC1);
-  vectorToMat(training_Y, labelsMat);
-  vectorsToMat(training_X, trainingDataMat);
-  //set up testing data
-  Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
-  vectorsToMat(testing_X, testingDataMat);
-
-
-  // Train the SVM
-  CvNormalBayesClassifier NBC;
-  NBC.train(trainingDataMat, labelsMat, Mat(), Mat());
-  
-  /*float err=0;
-  for (int i =0; i<binning_xs.size();i++){
-    Mat sample = trainingDataMat.row(i);
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-    if (SVM.predict(sample)!=targets[i]){
-      err += 1;
-    }
-  }
-  cout<<"err: "<<err/targets.size()<<endl;*/
-  float err=0;
-  for (int i =0; i<trainingDataMat.rows;i++){
-    if (fabs(NBC.predict(trainingDataMat.row(i))- training_Y->at(i))>1e-7){
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"trainning err = "<<err/trainingDataMat.rows<<endl;
-  
-  err=0;
-  for (int i = 0; i< testingDataMat.rows;i++){
-    if (fabs(NBC.predict(testingDataMat.row(i))-testing_Y->at(i))>1e-7){
-    
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
-}
-/*
-template <class T>
-void try_SVM(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vector<T>* >* testing_X, vector<int> * testing_Y){
-  // Set up training data
-  Mat labelsMat = Mat::zeros(training_Y->size(), 1 , CV_32FC1);
-  Mat trainingDataMat = Mat::zeros(training_X->size(), training_X->at(0)->size(), CV_32FC1);
-  vectorToMat(training_Y, labelsMat);
-  vectorsToMat(training_X, trainingDataMat);
-  //set up testing data
-  Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
-  vectorsToMat(testing_X, testingDataMat);
-  
-  // Set up SVM's parameters
-  CvSVMParams params;
-  params.svm_type    = CvSVM::C_SVC;
-  params.kernel_type = CvSVM::LINEAR;
-  params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
-
-  // Train the SVM
-  CvSVM SVM;
-  SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-  
-  float err=0;
-  for (int i =0; i< trainingDataMat.rows;i++){
-    if (fabs(SVM.predict(trainingDataMat.row(i))- training_Y->at(i))>1e-7){
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"trainning err = "<<err/trainingDataMat.rows<<endl;
-  
-  err=0;
-  for (int i = 0; i< testingDataMat.rows;i++){
-    if (fabs(SVM.predict(testingDataMat.row(i))-testing_Y->at(i))>1e-7){
-    
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
-}
-*/
-
-template <class T>
-void try_NN(vector<vector<T>*> *training_X, vector<int> *training_Y, vector<vector<T>* >* testing_X, vector<int> * testing_Y){
-  // Set up training data
-  cout<<training_Y->size()<<"  "<<training_X->size()<<endl;
-  Mat labelsMat = Mat::zeros(training_Y->size(), num_of_classes , CV_32FC1);
-  Mat trainingDataMat = Mat::zeros(training_X->size(), training_X->at(0)->size(), CV_32FC1);
-  vectorToMat_1ofKCoding(training_Y, labelsMat, num_of_classes);
-  vectorsToMat(training_X, trainingDataMat);
-  //set up testing data
-  Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
-  vectorsToMat(testing_X, testingDataMat);
-  
-  cout<<training_X->at(0)->size()<<" "<<num_of_classes<<endl;
-  int layers_d[] = { training_X->at(0)->size(), 20,  num_of_classes};
-  Mat layers = Mat(1,3,CV_32SC1);
-  for (int i = 0; i < 3; i++){
-    cout << "layer "<<i<<" :"<<layers_d[i]<<endl;
-    layers.at<int>(0,i) = layers_d[i];
-  }
-  // create the network using a sigmoid function with alpha and beta
-  //parameters 0.6 and 1 specified respectively (refer to manual)
-
-  CvANN_MLP* nnetwork = new CvANN_MLP;
-  nnetwork->create(layers, CvANN_MLP::SIGMOID_SYM, 0.6, 1);
-
-  // set the training parameters
-
-  // terminate the training after either 1000
-  // iterations or a very small change in the
-  // network wieghts below the specified value
- 
-  CvANN_MLP_TrainParams params = CvANN_MLP_TrainParams(
-    cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS, 1000, 0.000001),
-    CvANN_MLP_TrainParams::BACKPROP,
-    0.1,
-    0.1
-  );
-  int iterations = nnetwork->train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-  cout<<"finish training with "<<iterations<<" iterations"<<endl;
-  
-  float err=0;
-  for (int i =0; i<trainingDataMat.rows;i++){
-    Mat response;
-    nnetwork->predict(trainingDataMat.row(i),response);
-    int res = -1;
-    float max = 0;
-    for (int j = 0;j<num_of_classes;j++){
-      if (response.at<float>(0,j) > max){
-        res = j;
-        max = response.at<float>(0,j);
-      }
-    }
-    if (res!=training_Y->at(i)){
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"trainning err = "<<err/trainingDataMat.rows<<endl;
-  
-  err=0;
-  for (int i = 0; i< testingDataMat.rows;i++){
-    Mat response;
-    nnetwork->predict(testingDataMat.row(i),response);
-    int res = -1;
-    float max = 0;
-    for (int j = 0;j<num_of_classes;j++){
-      if (response.at<float>(0,j) > max){
-        res = j;
-        max = response.at<float>(0,j);
-      }
-    }
-    if (res!= testing_Y->at(i)){
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"testing err = "<<err/testingDataMat.rows<<endl;
-  
-  delete nnetwork;
 }
 
 void translate_input(PatternSet* ps, vector<vector<int>*>* const binning, vector<vector<int>*>* &res){
@@ -314,12 +124,13 @@ void analyze_params(int argc, char ** argv){
   //Specifying the expected options
   static struct option long_options[] = {
       {"data",      required_argument, 0,  'd' },
-      {"testfile",  required_argument, 0,  'b' },
+      {"testfile",  optional_argument, 0,  'b' },
       {"tempDir",   required_argument, 0,  't' },
       {"classIndex",optional_argument, 0,  'c' },
       {"min_sup",   optional_argument, 0,  's' },
-      {"delta",     required_argument, 0,  'l' },
+      {"delta",     optional_argument, 0,  'l' },
       {"stopc",     optional_argument, 0,  'o' },
+      {"fold",     optional_argument, 0,  'f' },
       {"eq",     optional_argument, 0,  'e' },
       {"alg",     optional_argument, 0,  'a' },
       {0,           0,                 0,  0   }
@@ -332,6 +143,7 @@ void analyze_params(int argc, char ** argv){
       case 'd' : strcpy(datafile,optarg);
         break;
       case 'b' : strcpy(testfile,optarg);
+        testProvided = true;
         break;
       case 't' : strcpy(tempDir,optarg);
         break;
@@ -359,6 +171,9 @@ void analyze_params(int argc, char ** argv){
           sc = NEVER;
         }
         break;
+      case 'f':
+        cv_fold = atoi(optarg);
+        break;
       case 'e' : equalwidth = true;
         break;
       default: print_usage(); 
@@ -381,13 +196,18 @@ int main(int argc, char** argv){
   ArffParser parser(datafile);
   //parse the data
   ArffData *ds = parser.parse();
+
+  ArffParser *test_parser = NULL;
+  ArffData *test_ds = NULL;
   //open test data
-  ArffParser test_parser(testfile);
-  ArffData *test_ds= test_parser.parse();
-  
+  if (testProvided){
+    test_parser = new ArffParser(testfile);
+    printf("parse test file!!!!!!!\n");
+    test_ds= test_parser->parse();
+  }
   printf("Successfully finish reading the data!\n");
 
-  cout<<"num of instances="<<ds->num_instances()<<endl;
+  ///cout<<"num of instances="<<ds->num_instances()<<endl;
 
   num_of_attributes = ds->num_attributes();
   if (classIndex == -1){
@@ -413,10 +233,11 @@ int main(int argc, char** argv){
   generate_binning_data(tempDataFile, ds, divider, classIndex,binning_xs, targets);
   
 
-  //save testing temp data file
-  printf("saving testing data to %s\n", tempTestFile);
-  generate_binning_data(tempTestFile, test_ds, divider, classIndex, test_binning_xs, test_targets);
-
+  if (testProvided){
+    //save testing temp data file
+    printf("saving testing data to %s\n", tempTestFile);
+    generate_binning_data(tempTestFile, test_ds, divider, classIndex, test_binning_xs, test_targets);
+  }
   num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   
   char tempDPMFile[32];
@@ -437,8 +258,10 @@ int main(int argc, char** argv){
   //translate input
   cout<<"translating input"<<endl;
   translate_input(patternSet, binning_xs, xs);
-  translate_input(patternSet, test_binning_xs,test_xs);
-  
+
+  if (testProvided){
+    translate_input(patternSet, test_binning_xs,test_xs);
+  }
   //for (int i = 0;i<xs.size();i++){
   //  print_vector(xs[i]);
   //  print_vector(binning_xs[i]);
@@ -447,14 +270,25 @@ int main(int argc, char** argv){
   cout<<"start training and testing"<<endl;
   switch(alg){
     case ALG_SVM:
-      //try_SVM(xs,targets,test_xs,test_targets);
-      try_SVM(xs,targets,10);
+      if (testProvided){
+        try_SVM(xs,targets,test_xs,test_targets);
+      } else{
+        try_SVM(xs,targets,cv_fold);
+      }
       break;
     case ALG_NN:
-      try_NN(xs,targets,test_xs,test_targets);
+      if (testProvided){
+        try_NN(xs,targets,test_xs,test_targets, num_of_classes);
+      } else{
+        try_NN(xs,targets, num_of_classes, cv_fold);
+      }
       break;
     case ALG_NBC:
-      try_NBC(xs,targets,test_xs,test_targets);
+      if (testProvided){
+        try_NBC(xs,targets,test_xs,test_targets);
+      } else{
+        try_NBC(xs,targets,cv_fold);
+      }
       break;
     default:
       break;
@@ -464,6 +298,7 @@ int main(int argc, char** argv){
   //try_NN();
   //try_SVM();
   //try_NBC();
+  free(test_parser);
   free(binning_xs);
   free(xs);
   free(targets);

@@ -1,1 +1,1 @@
-./main -t temp -l 100  -d data/iris.arff -b data/iris.arff -a svm -s 4
+./main -t temp -d data/iris.arff -a svm
