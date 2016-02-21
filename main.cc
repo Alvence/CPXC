@@ -268,32 +268,34 @@ int main(int argc, char** argv){
   //}
 
   cout<<"start training and testing"<<endl;
+  float err = 0.0;
   switch(alg){
     case ALG_SVM:
       if (testProvided){
-        try_SVM(xs,targets,test_xs,test_targets);
+        err=try_SVM(xs,targets,test_xs,test_targets);
       } else{
-        try_SVM(xs,targets,cv_fold);
+        err=try_SVM(xs,targets,cv_fold);
       }
       break;
     case ALG_NN:
       if (testProvided){
-        try_NN(xs,targets,test_xs,test_targets, num_of_classes);
+        err=try_NN(xs,targets,test_xs,test_targets, num_of_classes);
       } else{
-        try_NN(xs,targets, num_of_classes, cv_fold);
+        err=try_NN(xs,targets, num_of_classes, cv_fold);
       }
       break;
     case ALG_NBC:
       if (testProvided){
-        try_NBC(xs,targets,test_xs,test_targets);
+        err=try_NBC(xs,targets,test_xs,test_targets);
       } else{
-        try_NBC(xs,targets,cv_fold);
+        err=try_NBC(xs,targets,cv_fold);
       }
       break;
     default:
       break;
 
   }
+  printf("error = %.2f %",err*100);
   //try neural network
   //try_NN();
   //try_SVM();

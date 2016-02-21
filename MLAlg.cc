@@ -131,11 +131,11 @@ float try_NBC(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<
   Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
   vectorsToMat(testing_X, testingDataMat);
 
-
+  cout<<"aa"<<endl;
   // Train the SVM
   CvNormalBayesClassifier NBC;
   NBC.train(trainingDataMat, labelsMat, Mat(), Mat());
-  
+  cout<<"bb"<<endl; 
   
   float err=0;
   /*for (int i =0; i<trainingDataMat.rows;i++){
