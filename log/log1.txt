@@ -1,0 +1,10 @@
+data/anneal.arff: alg = svm  pattern=45 min_sup=(1.00%,1) ratio=50  error = 13.33 %
+data/credit-a.arff: alg = svm  pattern=392 min_sup=(1.00%,6) ratio=50  error = 27.68 %
+data/diabetes.arff: alg = svm  pattern=127 min_sup=(1.00%,7) ratio=50  error = 27.78 %
+data/hepatitis.arff: alg = svm  pattern=48 min_sup=(1.00%,1) ratio=50  error = 18.17 %
+data/ILPD.arff: alg = svm  pattern=67 min_sup=(1.00%,5) ratio=50  error = 31.06 %
+data/iris.arff: alg = svm  pattern=16 min_sup=(1.00%,1) ratio=50  error = 2.67 %
+data/labor.arff: alg = svm  pattern=40 min_sup=(1.00%,1) ratio=50  error = 8.33 %
+data/sick.arff: alg = svm  pattern=492 min_sup=(1.00%,37) ratio=50  error = 57.65 %
+data/vote.arff: alg = svm  pattern=96 min_sup=(1.00%,4) ratio=50  error = 4.84 %
+data/vowel.arff: alg = svm  pattern=1290 min_sup=(1.00%,9) ratio=50  error = 52.53 %

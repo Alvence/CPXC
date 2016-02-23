@@ -34,6 +34,7 @@ char tempDir[256];
 char testfile[256];
 int classIndex=-1;
 int min_sup = -1;
+float min_sup_ratio = 0.01; //default min sup = 1%
 int delta = 6;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
@@ -42,6 +43,7 @@ ClassifierAlg alg = ALG_NBC;
 int cv_fold = 10;
 int num_of_attributes;
 int num_of_classes;
+string algStr = "nbc";
 
 vector<int>* targets=NULL;
 vector<vector<int>*> *xs=NULL;
@@ -133,11 +135,12 @@ void analyze_params(int argc, char ** argv){
       {"fold",     optional_argument, 0,  'f' },
       {"eq",     optional_argument, 0,  'e' },
       {"alg",     optional_argument, 0,  'a' },
+      {"sr",     optional_argument, 0,  'r' },
       {0,           0,                 0,  0   }
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
@@ -153,10 +156,15 @@ void analyze_params(int argc, char ** argv){
         break;
       case 'l' : delta = atoi(optarg);
         break;
+      case 'r':
+                 min_sup_ratio = strtof(optarg,NULL);
+                 break;
       case 'a':
         if (strcmp(optarg,"svm") == 0){
+          algStr = "svm";
           alg = ALG_SVM;
         } else if (strcmp(optarg, "nn")==0){
+          algStr = "nn";
           alg = ALG_NN;
         } else {
           alg = ALG_NBC;
@@ -181,10 +189,10 @@ void analyze_params(int argc, char ** argv){
     }
   }
 }
-
+//#define CPXC_DEBUG
 int main(int argc, char** argv){
   analyze_params(argc,argv);
-
+  int num_patterns;
   char tempDataFile[32];
   char tempTestFile[32];
   strcpy(tempDataFile,tempDir);
@@ -205,8 +213,9 @@ int main(int argc, char** argv){
     printf("parse test file!!!!!!!\n");
     test_ds= test_parser->parse();
   }
+#ifdef CPXC_DEBUG
   printf("Successfully finish reading the data!\n");
-
+#endif
   ///cout<<"num of instances="<<ds->num_instances()<<endl;
 
   num_of_attributes = ds->num_attributes();
@@ -214,11 +223,13 @@ int main(int argc, char** argv){
     classIndex = num_of_attributes - 1;
   }
   if (min_sup<0){
-    min_sup = ds->num_instances()*0.01;
+    min_sup = ds->num_instances()* min_sup_ratio;
     if (min_sup<=1){
       min_sup = 1;
     }
+#ifdef CPXC_DEBUG
     cout<<"set min_sup="<<min_sup<<endl;
+#endif
   }
   BinDivider* divider= new BinDivider();
   if (equalwidth){
@@ -227,15 +238,18 @@ int main(int argc, char** argv){
     divider->init_minimal_entropy(ds, classIndex, sc);
   }
   //sava training temp data file
+#ifdef CPXC_DEBUG
   printf("saving training data to %s\n",tempDataFile);
-
+#endif
   targets = new vector<int>();
   generate_binning_data(tempDataFile, ds, divider, classIndex,binning_xs, targets);
   
 
   if (testProvided){
     //save testing temp data file
+#ifdef CPXC_DEBUG
     printf("saving testing data to %s\n", tempTestFile);
+#endif
     generate_binning_data(tempTestFile, test_ds, divider, classIndex, test_binning_xs, test_targets);
   }
   num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
@@ -244,8 +258,10 @@ int main(int argc, char** argv){
   strcpy(tempDPMFile,tempDir);
   strcat(tempDPMFile,"/result");
   //generating constrast pattern files
+#ifdef CPXC_DEBUG
   printf("generating contrast patterns.\n");
-  dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
+#endif
+  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
 
   //read patterns
   PatternSet* patternSet = new PatternSet();
@@ -256,7 +272,6 @@ int main(int argc, char** argv){
   //patternSet->print();
 
   //translate input
-  cout<<"translating input"<<endl;
   translate_input(patternSet, binning_xs, xs);
 
   if (testProvided){
@@ -266,8 +281,9 @@ int main(int argc, char** argv){
   //  print_vector(xs[i]);
   //  print_vector(binning_xs[i]);
   //}
-
+#ifdef CPXC_DEBUG
   cout<<"start training and testing"<<endl;
+#endif
   float err = 0.0;
   switch(alg){
     case ALG_SVM:
@@ -295,7 +311,7 @@ int main(int argc, char** argv){
       break;
 
   }
-  printf("error = %.2f %",err*100);
+  printf("%s: alg = %s  pattern=%d min_sup=(%.0f%,%d) ratio=%d  error = %.2f %\n",datafile,algStr.c_str(), num_patterns, min_sup_ratio*100,min_sup, delta,err*100);
   //try neural network
   //try_NN();
   //try_SVM();

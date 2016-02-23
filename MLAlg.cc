@@ -112,7 +112,9 @@ float try_SVM(std::vector<std::vector<int>*> *training_X, std::vector<int> *trai
     float cv_err = try_SVM(x,y,tx,ty);
     errs.push_back(cv_err);
     err+=cv_err;
+#ifdef CPXC_DEBUG
     cout<<"fold "<<n<<":  err="<<cv_err<<"   ["<<first<<","<<last<<")"<<endl;
+#endif
     delete ty;
     delete tx;
     delete y;
@@ -131,11 +133,9 @@ float try_NBC(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<
   Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
   vectorsToMat(testing_X, testingDataMat);
 
-  cout<<"aa"<<endl;
   // Train the SVM
   CvNormalBayesClassifier NBC;
   NBC.train(trainingDataMat, labelsMat, Mat(), Mat());
-  cout<<"bb"<<endl; 
   
   float err=0;
   /*for (int i =0; i<trainingDataMat.rows;i++){
@@ -195,7 +195,9 @@ float try_NBC(std::vector<std::vector<int>*> *training_X, std::vector<int> *trai
     float cv_err = try_NBC(x,y,tx,ty);
     errs.push_back(cv_err);
     err+=cv_err;
+#ifdef CPXC_DEBUG
     cout<<"fold "<<n<<":  err="<<cv_err<<"   ["<<first<<","<<last<<")"<<endl;
+#endif
     delete ty;
     delete tx;
     delete y;
@@ -206,7 +208,6 @@ float try_NBC(std::vector<std::vector<int>*> *training_X, std::vector<int> *trai
 
 float try_NN(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<vector<int>* >* testing_X, vector<int> * testing_Y, int num_of_classes){
   // Set up training data
-  cout<<training_Y->size()<<"  "<<training_X->size()<<endl;
   Mat labelsMat = Mat::zeros(training_Y->size(), num_of_classes , CV_32FC1);
   Mat trainingDataMat = Mat::zeros(training_X->size(), training_X->at(0)->size(), CV_32FC1);
   vectorToMat_1ofKCoding(training_Y, labelsMat, num_of_classes);
@@ -214,12 +215,15 @@ float try_NN(vector<vector<int>*> *training_X, vector<int> *training_Y, vector<v
   //set up testing data
   Mat testingDataMat = Mat::zeros(testing_X->size(), testing_X->at(0)->size(), CV_32FC1);
   vectorsToMat(testing_X, testingDataMat);
-  
+#ifdef CPXC_DEBUG 
   cout<<training_X->at(0)->size()<<" "<<num_of_classes<<endl;
+#endif
   int layers_d[] = { training_X->at(0)->size(), 20,  num_of_classes};
   Mat layers = Mat(1,3,CV_32SC1);
   for (int i = 0; i < 3; i++){
+#ifdef CPXC_DEBUG
     cout << "layer "<<i<<" :"<<layers_d[i]<<endl;
+#endif
     layers.at<int>(0,i) = layers_d[i];
   }
   // create the network using a sigmoid function with alpha and beta
@@ -319,7 +323,9 @@ float try_NN(std::vector<std::vector<int>*> *training_X, std::vector<int> *train
     float cv_err = try_NN(x,y,tx,ty, num_of_classes);
     errs.push_back(cv_err);
     err+=cv_err;
+#ifdef CPXC_DEBUG
     cout<<"fold "<<n<<":  err="<<cv_err<<"   ["<<first<<","<<last<<")"<<endl;
+#endif
     delete ty;
     delete tx;
     delete y;

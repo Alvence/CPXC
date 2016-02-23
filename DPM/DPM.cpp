@@ -108,7 +108,8 @@ int dpm(char *filename, char * tempfile, int num_of_classes, int min_sup, int de
 
 	//_CrtDumpMemoryLeaks();
 
-	return gntotal_generators;
+	//return gntotal_generators;
+  return gntotal_closed;
 }
 void MineFreqGenerators()
 {
@@ -320,8 +321,9 @@ void MineFreqGenerators()
 	}
 	ftime(&end);
 	gdtotal_running_time = end.time-start.time+(double)(end.millitm-start.millitm)/1000;
-
+#ifdef CPXC_DEBUG
 	PrintSummary();
+#endif
 }
 
 

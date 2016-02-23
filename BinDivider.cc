@@ -201,8 +201,8 @@ void BinDivider::init_minimal_entropy(ArffData* ds, int label_index, StoppingCre
     }
     discretize(set, labels, dividers, ds->get_nominal(ds->get_attr(label_index)->name()).size(), sc);
     bin_list->at(j) = dividers;
-    cout<<"for att "<<j<<endl;
-    print_vector(dividers);
+    ///cout<<"for att "<<j<<endl;
+    ///print_vector(dividers);
   }
 }
 
@@ -243,7 +243,7 @@ void BinDivider::init_equal_width(ArffData* ds, int n){
       //number of bins = max(n, 2*log(l),l is the number of distinct oberved values, see Spector 1994)
       if (n < 2*log2(temp.size())){
         num_bins = 2*log2(temp.size());
-        cout << "attribute "<<j<<" distinct value="<<temp.size();
+        ///cout << "attribute "<<j<<" distinct value="<<temp.size();
       }else{
         num_ins = n;
       }
