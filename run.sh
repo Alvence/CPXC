@@ -1,6 +1,6 @@
 #for file in anneal credit-a diabetes hepatitis ILPD iris labor sick vote vowel
-#!/bin/python
 for file in `ls data/*.arff`
+#for file in "data/sick.arff"
 do 
   for alg in svm nn nbc
   do
@@ -9,7 +9,7 @@ do
       for ratio in 50 30 20 10 7 5
       do
         echo "./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg"
-        timeout 120 ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> log/log.txt
+        timeout 600 ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> log/log.txt
      done
     done
   done
