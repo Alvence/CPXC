@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <queue>
 
 #include "Utils.h"
 
@@ -50,7 +51,14 @@ void Pattern::print(){
   for (int i = 0; i != items.size();i++){
     cout<<" "<<items[i];
   }
-  cout<<endl;
+
+  for (int i = 0; i < union_patterns.size();i++){
+    cout<<"  and  ";
+    union_patterns[i].print();
+  }
+  
+  if (union_patterns.size()==0)
+    cout<<endl;
 }
 
 float entropy(int count, int N){
@@ -270,26 +278,45 @@ float AMI(Pattern &p1, Pattern &p2, vector<vector<int>*>* const xs){
   return ami;
 }
 
-void PatternSet::prune_AMI(vector<vector<int>*>* xs){
-  vector<vector<float> > matrix;
-  //initialize a n*n matrix
-  for (int i = 0; i < size; i++){
-    vector<float> temp(size,0);
-    matrix.push_back(temp);
-  }
+
+struct PatternPair{
+  int p1;
+  int p2;
+  float score;
+};
+
+bool operator>(const PatternPair& lhs, const PatternPair& rhs)
+{
+    return lhs.score > rhs.score;
+}
+bool operator<(const PatternPair& lhs, const PatternPair& rhs)
+{
+    return lhs.score < rhs.score;
+}
+
+void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
+  priority_queue< PatternPair, vector<PatternPair>, less<PatternPair> > queue;
+  
   vector<int> stat(10,0);
+  bool flag[size];
   int neg = 0;
   int gto = 0;//greater than one
   for (int i = 0; i < size; i++){
+    flag[i] = false;
     for (int j = i + 1; j < size; j++){
-      matrix[i][j] = AMI(patterns[i],patterns[j],xs);
-      matrix[j][i] = matrix[i][j];
-      if (matrix[i][j] > 0.4){
-        cout<<"prune: ("<<i<<","<<j<<"): "<<matrix[i][j]<<endl;
-              
+      PatternPair pair;
+      pair.p1 = i;
+      pair.p2 = j;
+      pair.score = AMI(patterns[i],patterns[j],xs);
+
+      if (isnan(pair.score)){
+        pair.score = 0.0;
       }
-      int loc = (int)(matrix[i][j]*10);
-      
+
+      queue.push(pair);
+     
+      //for statistics purpose
+      int loc = (int)(pair.score*10);
       if (loc>=0&&loc<10)
         stat[loc]++;
       else if(loc<0)
@@ -299,10 +326,33 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs){
     }
   }
 
+  /*
   print_vector(stat);
   cout<<"neg: "<<neg<<"    gto: "<<gto<<endl;
-
+  */
   //TODO
+  vector<Pattern> newPs;
+  while (!queue.empty() && queue.top().score >= threshold){
+    PatternPair p = queue.top();
+    queue.pop();
+    //cout << p.p1<<" "<<p.p2 << " score = " << p.score<<endl;
+    if ((!flag[p.p1])&&(!flag[p.p2])){
+      Pattern p1 = patterns[p.p1];
+      Pattern p2 = patterns[p.p2];
+      p1.merge(p2);
+      newPs.push_back(p1);
+      ///cout<<"merge: "<<p.p1<<" and "<<p.p2<<endl;
+      flag[p.p1] = true;
+      flag[p.p2] = true;
+    }
+  }
+  for (int i = 0; i < size; i++){
+    if (!flag[i]){
+      newPs.push_back(patterns[i]);
+    }
+  }
+  size = newPs.size();
+  patterns = newPs;
 }
 
 void PatternSet::read(char* file){

@@ -36,6 +36,7 @@ int classIndex=-1;
 int min_sup = -1;
 float min_sup_ratio = 0.01; //default min sup = 1%
 int delta = 6;
+float prune_threshold = 0.2;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
 bool testProvided = false;
@@ -135,12 +136,13 @@ void analyze_params(int argc, char ** argv){
       {"fold",     optional_argument, 0,  'f' },
       {"eq",     optional_argument, 0,  'e' },
       {"alg",     optional_argument, 0,  'a' },
-      {"sr",     optional_argument, 0,  'r' },
+      {"sr",     optional_argument, 0,  'r' }, 
+      {"p_threshold",     optional_argument, 0,  'h' },
       {0,           0,                 0,  0   }
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
@@ -158,6 +160,9 @@ void analyze_params(int argc, char ** argv){
         break;
       case 'r':
                  min_sup_ratio = strtof(optarg,NULL);
+                 break;
+      case 'h':
+                 prune_threshold = strtof(optarg,NULL);
                  break;
       case 'a':
         if (strcmp(optarg,"svm") == 0){
@@ -268,8 +273,8 @@ int main(int argc, char** argv){
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
 
-  //patternSet->prune_AMI(binning_xs);
-  //patternSet->print();
+  patternSet->prune_AMI(binning_xs, prune_threshold);
+//  patternSet->print();
 
   //translate input
   translate_input(patternSet, binning_xs, xs);
@@ -311,7 +316,8 @@ int main(int argc, char** argv){
       break;
 
   }
-  printf("%s: alg = %s  pattern=%d min_sup=(%.0f%,%d) ratio=%d  error = %.2f %\n",datafile,algStr.c_str(), num_patterns, min_sup_ratio*100,min_sup, delta,err*100);
+  printf("%s: alg = %s  pattern=%d min_sup=(%.0f%,%d) ratio=%d  error = %.2f %\n",datafile,algStr.c_str(), patternSet->get_size(), min_sup_ratio*100,min_sup, delta,err*100);
+  
   //try neural network
   //try_NN();
   //try_SVM();
