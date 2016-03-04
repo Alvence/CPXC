@@ -36,7 +36,7 @@ int classIndex=-1;
 int min_sup = -1;
 float min_sup_ratio = 0.01; //default min sup = 1%
 int delta = 6;
-float prune_threshold = 0.2;
+float prune_threshold = 0.3;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
 bool testProvided = false;
