@@ -1,0 +1,12 @@
+data/sick.arff: alg = svm  pattern=13 min_sup=(1%,37) ratio=50  error = 6.13 %
+data/sick.arff: alg = svm  pattern=36 min_sup=(20%,754) ratio=30  error = 6.13 %
+data/sick.arff: alg = svm  pattern=7 min_sup=(20%,754) ratio=7  error = 6.13 %
+data/sick.arff: alg = nn  pattern=36 min_sup=(20%,754) ratio=30  error = 6.42 %
+data/sick.arff: alg = nn  pattern=27 min_sup=(20%,754) ratio=10  error = 6.26 %
+data/sick.arff: alg = nn  pattern=5 min_sup=(20%,754) ratio=7  error = 6.13 %
+data/sick.arff: alg = nn  pattern=6 min_sup=(20%,754) ratio=5  error = 6.13 %
+data/sick.arff: alg = nbc  pattern=36 min_sup=(20%,754) ratio=30  error = 65.93 %
+data/sick.arff: alg = nbc  pattern=37 min_sup=(20%,754) ratio=20  error = 10.37 %
+data/sick.arff: alg = nbc  pattern=27 min_sup=(20%,754) ratio=10  error = 42.35 %
+data/sick.arff: alg = nbc  pattern=5 min_sup=(20%,754) ratio=7  error = 36.38 %
+data/sick.arff: alg = nbc  pattern=6 min_sup=(20%,754) ratio=5  error = 43.29 %

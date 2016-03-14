@@ -1,0 +1,15 @@
+data/vowel.arff: alg = svm  pattern=93 min_sup=(2%,19) ratio=7  error = 52.53 %
+data/vowel.arff: alg = svm  pattern=34 min_sup=(2%,19) ratio=5  error = 63.23 %
+data/vowel.arff: alg = svm  pattern=95 min_sup=(5%,49) ratio=30  error = 57.37 %
+data/vowel.arff: alg = svm  pattern=7 min_sup=(5%,49) ratio=20  error = 71.52 %
+data/vowel.arff: alg = svm  pattern=1 min_sup=(10%,99) ratio=50  error = 85.25 %
+data/vowel.arff: alg = nn  pattern=93 min_sup=(2%,19) ratio=7  error = 58.79 %
+data/vowel.arff: alg = nn  pattern=34 min_sup=(2%,19) ratio=5  error = 62.73 %
+data/vowel.arff: alg = nn  pattern=95 min_sup=(5%,49) ratio=30  error = 59.80 %
+data/vowel.arff: alg = nn  pattern=7 min_sup=(5%,49) ratio=20  error = 74.44 %
+data/vowel.arff: alg = nn  pattern=1 min_sup=(10%,99) ratio=50  error = 85.25 %
+data/vowel.arff: alg = nbc  pattern=93 min_sup=(2%,19) ratio=7  error = 50.51 %
+data/vowel.arff: alg = nbc  pattern=34 min_sup=(2%,19) ratio=5  error = 66.77 %
+data/vowel.arff: alg = nbc  pattern=95 min_sup=(5%,49) ratio=30  error = 53.74 %
+data/vowel.arff: alg = nbc  pattern=7 min_sup=(5%,49) ratio=20  error = 85.15 %
+data/vowel.arff: alg = nbc  pattern=1 min_sup=(10%,99) ratio=50  error = 85.25 %
