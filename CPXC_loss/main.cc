@@ -215,12 +215,19 @@ void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY){
   // Train the SVM
   CvNormalBayesClassifier NBC;
   NBC.train(trainingX, trainingY, Mat(), Mat());
-  
+ 
+
   float err=0;
   for (int i =0; i< trainingX.rows;i++){
-    Mat sample = trainingX.row(i);
-    cout << NBC.predict(sample)<<"   true="<<trainingY.at<float>(i,0)<<endl;
-    if (fabs(NBC.predict(trainingX.row(i))- trainingY.at<float>(i,0))>1e-7){
+    CvMat sample = trainingX.row(i);
+    Mat prob = Mat::zeros(1,3,CV_32FC1);
+    CvMat probs = prob;
+    cout << i<<": "<<NBC.predict(&sample,0,&probs)<<"   true="<<trainingY.at<float>(i,0)<<" probs:";
+    for (int j=0;j<3;j++){
+      cout <<" "<<probs.data.fl[j];
+    }
+    cout<<endl;
+    if (fabs(NBC.predict(&sample)- trainingY.at<float>(i,0))>1e-7){
     
       err += 1;
     }
@@ -288,12 +295,13 @@ int main(int argc, char** argv){
   ArffData *ds = parser.parse();
   translate_input(ds,trainingX,trainingY);
   
+  /*
   for (int row = 0; row < trainingX.rows; row++){
     for (int col = 0; col < trainingX.cols; col++){
       cout << trainingX.at<float>(row,col)<<" ";
     }
     cout <<" class = "<< trainingY.at<float>(row,0)<<endl;
-  }
+  }*/
   
   baseline_classfier_NBC(trainingX,trainingY);
   
