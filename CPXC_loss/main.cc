@@ -210,11 +210,56 @@ void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   vectorsToMat(xs,trainingX);
 }
 
-void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY){
+
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t, vector<int> * largeErrSet = 0){
+  free_p(Xs);
+  free_p(t);
+  Xs = new vector<vector<int>*>();
+  t = new vector<int>();
+  ofstream out;
+  out.open(file, ios::out);
+  for (int i = 0; i != ds->num_instances(); i++){
+    ArffInstance* x = ds->get_instance(i);
+    ArffValue* y = x->get(classIndex);
+    int target = bin_value(y,ds,divider,classIndex);
+    //remove higher bits representing the attributes indexs
+    target = target & ((1<<ATTR_SHIFT)-1);
+    out<<target;
+    t->push_back(target);
+    vector<int> *ins = new vector<int>();
+    for (int j = 0; j != ds->num_attributes(); j++){
+      if (j==classIndex) continue;
+      ArffValue* v = x->get(j);
+      //std::string s = *v;
+      if (!v->missing()){
+        int val = bin_value(v,ds,divider,j);
+        out<<" "<<val;
+        ins->push_back(val);
+      }
+    }
+    Xs->push_back(ins);
+    out << endl;
+  }
+  out.close();
+}
+
+
+void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeErrSet, vector<int> *smallErrSet, float rho){
+
+  if(largeErrSet == 0){
+    largeErrSet = new vector<int>();
+  }
+  if(smallErrSet == 0){
+    smallErrSet = new vector<int>();
+  }
+
+  largeErrSet->clear();
+  smallErrSet->clear();
+
 
   // Train the SVM
   CvNormalBayesClassifier NBC;
-  NBC.train(trainingX, trainingY, Mat(), Mat());
+  NBC.train(trainingX.rowRange(0,100), trainingY.rowRange(0,100), Mat(), Mat());
  
 
   float err=0;
@@ -222,60 +267,20 @@ void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY){
     CvMat sample = trainingX.row(i);
     Mat prob = Mat::zeros(1,3,CV_32FC1);
     CvMat probs = prob;
-    cout << i<<": "<<NBC.predict(&sample,0,&probs)<<"   true="<<trainingY.at<float>(i,0)<<" probs:";
-    for (int j=0;j<3;j++){
-      cout <<" "<<probs.data.fl[j];
-    }
-    cout<<endl;
+    
+    float response = NBC.predict(&sample,0,&probs);
+
     if (fabs(NBC.predict(&sample)- trainingY.at<float>(i,0))>1e-7){
-    
       err += 1;
+      largeErrSet->push_back(i);
+    } else if (probs.data.fl[(int)response] < rho){
+      largeErrSet->push_back(i);
+    }else{
+      smallErrSet->push_back(i);
     }
   }
   cout<<"trainning err = "<<err/trainingX.rows<<endl;
-  /*
-  err=0;
-  for (int i = 0; i< testingDataMat.rows;i++){
-    if (fabs(SVM.predict(testingDataMat.row(i))-testing_Y->at(i))>1e-7){
-    
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  //cout<<"testing err = "<<err/testingDataMat.rows<<endl;
-  return err*1.0/testingDataMat.rows;*/
-}
-
-void baseline_classfier(Mat& trainingX, Mat& trainingY){
-   // Set up SVM's parameters
-  CvSVMParams params;
-  params.svm_type    = CvSVM::C_SVC;
-  params.kernel_type = CvSVM::LINEAR;
-  params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
-
-  // Train the SVM
-  CvSVM SVM;
-  SVM.train(trainingX, trainingY, Mat(), Mat(), params);
-  
-  float err=0;
-  for (int i =0; i< trainingX.rows;i++){
-    if (fabs(SVM.predict(trainingX.row(i))- trainingY.at<float>(i,0))>1e-7){
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  cout<<"trainning err = "<<err/trainingX.rows<<endl;
-  /*
-  err=0;
-  for (int i = 0; i< testingDataMat.rows;i++){
-    if (fabs(SVM.predict(testingDataMat.row(i))-testing_Y->at(i))>1e-7){
-    
-    //cout << SVM.predict(sample)<<"   true="<<targets[i]<<endl;
-      err += 1;
-    }
-  }
-  //cout<<"testing err = "<<err/testingDataMat.rows<<endl;
-  return err*1.0/testingDataMat.rows;*/
+  cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows<<endl;
 }
 
 //#define CPXC_DEBUG
@@ -294,17 +299,32 @@ int main(int argc, char** argv){
   //parse the data
   ArffData *ds = parser.parse();
   translate_input(ds,trainingX,trainingY);
-  
-  /*
-  for (int row = 0; row < trainingX.rows; row++){
-    for (int col = 0; col < trainingX.cols; col++){
-      cout << trainingX.at<float>(row,col)<<" ";
+ 
+  num_of_attributes = ds->num_attributes();
+  if (classIndex == -1){
+    classIndex = num_of_attributes - 1;
+  }
+  if (min_sup<0){
+    min_sup = ds->num_instances()* min_sup_ratio;
+    if (min_sup<=1){
+      min_sup = 1;
     }
-    cout <<" class = "<< trainingY.at<float>(row,0)<<endl;
-  }*/
+#ifdef CPXC_DEBUG
+    cout<<"set min_sup="<<min_sup<<endl;
+#endif
+  }
+  BinDivider* divider= new BinDivider();
+  if (equalwidth){
+    divider->init_equal_width(ds,5);
+  }else{
+    divider->init_minimal_entropy(ds, classIndex, sc);
+  }
   
-  baseline_classfier_NBC(trainingX,trainingY);
+  baseline_classfier_NBC(trainingX,trainingY,0,0,20);
+
   
+
+
   free(xs);
   free(ys);
   return 0;
