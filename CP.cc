@@ -46,6 +46,27 @@ bool Pattern::match(vector<int> instance){
   return false;
 }
 
+float Pattern::distance(Pattern p){
+  int count = 0;
+  for (int i = 0; i < items.size();i++){
+    int p = items[i];
+    int value = p & ((1<<ATTR_SHIFT)-1);
+    int attr_index = p >> ATTR_SHIFT;
+    for (int j = 0; j < p.items.size(); j++){  
+      int p2 = items[i];
+      int value2 = p2 & ((1<<ATTR_SHIFT)-1);
+      int attr_index2 = p2 >> ATTR_SHIFT;
+      
+      if(attr_index == attr_index2){
+        if (value != value2){
+          count ++;
+        }
+      }
+    }
+  }
+  return count;
+}
+
 void Pattern::print(){
   cout<<num_item;
   for (int i = 0; i != items.size();i++){
@@ -283,6 +304,7 @@ struct PatternPair{
   int p1;
   int p2;
   float score;
+  float distance;
 };
 
 bool operator>(const PatternPair& lhs, const PatternPair& rhs)
@@ -293,6 +315,7 @@ bool operator<(const PatternPair& lhs, const PatternPair& rhs)
 {
     return lhs.score < rhs.score;
 }
+
 
 void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
   priority_queue< PatternPair, vector<PatternPair>, less<PatternPair> > queue;
