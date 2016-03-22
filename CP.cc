@@ -10,7 +10,7 @@
 #include <queue>
 
 #include "Utils.h"
-
+#include "BinDivider.h"
 using namespace std;
 template <typename T>
 bool isSubset(std::vector<T> A, std::vector<T> B)
@@ -49,13 +49,13 @@ bool Pattern::match(vector<int> instance){
 float Pattern::distance(Pattern p){
   int count = 0;
   for (int i = 0; i < items.size();i++){
-    int p = items[i];
-    int value = p & ((1<<ATTR_SHIFT)-1);
-    int attr_index = p >> ATTR_SHIFT;
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
     for (int j = 0; j < p.items.size(); j++){  
-      int p2 = items[i];
-      int value2 = p2 & ((1<<ATTR_SHIFT)-1);
-      int attr_index2 = p2 >> ATTR_SHIFT;
+      int item2 = items[i];
+      int value2 = item2 & ((1<<ATTR_SHIFT)-1);
+      int attr_index2 = item2 >> ATTR_SHIFT;
       
       if(attr_index == attr_index2){
         if (value != value2){
@@ -331,6 +331,7 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
       pair.p1 = i;
       pair.p2 = j;
       pair.score = AMI(patterns[i],patterns[j],xs);
+      pair.distance = patterns[i].distance(patterns[j]);
 
       if (isnan(pair.score)){
         pair.score = 0.0;
@@ -355,7 +356,7 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
   */
   //TODO
   vector<Pattern> newPs;
-  while (!queue.empty() && queue.top().score >= threshold){
+  while (!queue.empty() && queue.top().score >= threshold && queue.top().distance < 2){
     PatternPair p = queue.top();
     queue.pop();
     //cout << p.p1<<" "<<p.p2 << " score = " << p.score<<endl;

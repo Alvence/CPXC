@@ -17,7 +17,7 @@ public:
   bool match(std::vector<int> * instance);
   void print();
   void merge(Pattern p);
-  float instance(Pattern p);
+  float distance(Pattern p);
 
   inline int get_num_item(){return num_item;}
 };
