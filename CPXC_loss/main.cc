@@ -25,6 +25,7 @@
 #include "CP.h"
 #include "Utils.h"
 #include "MLAlg.h"
+#include "CPXC.h"
 
 using namespace cv;
 using namespace std;
@@ -50,6 +51,8 @@ string algStr = "nbc";
 
 Mat trainingX; 
 Mat trainingY;
+Mat testingX;
+Mat testingY;
 vector<vector<float>* >*xs = new vector<vector<float>* >();
 vector<float> * ys = new vector<float> ();
 
@@ -174,7 +177,7 @@ int get_nominal_index(ArffNominal nominals, String name){
   return -1;
 }
 
-void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const xs, vector<vector<int>*>* &ins){
+void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const xs, vector<vector<int>*>* &ins, vector<int>* largeErrSet){
   vector<Pattern> patterns = ps->get_patterns();
   for (int i = 0;i < xs->size();i++){
     vector<int>* x = xs->at(i);
@@ -183,7 +186,7 @@ void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const
         if(ins->at(j) == NULL){
           ins->at(j) = new vector<int> ();
         }
-        ins->at(j)->push_back(i);
+        ins->at(j)->push_back(largeErrSet->at(i));
       }
     }
   }
@@ -247,8 +250,65 @@ void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   vectorsToMat(xs,trainingX);
 }
 
+vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int classIndex, int index){
+  vector<int>* res = new vector<int>();
+  vector<int>* ins = new vector<int>();
+  
+  ArffInstance* x = ds->get_instance(index);
 
-void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t, vector<int> * largeErrSet = 0){
+  for (int j = 0; j != ds->num_attributes(); j++){
+    if (j==classIndex) continue;
+    ArffValue* v = x->get(j);
+    //std::string s = *v;
+    if (!v->missing()){
+      int val = bin_value(v,ds,divider,j);
+      ins->push_back(val);
+    }
+  }
+
+  for (int i = 0; i < ps->get_patterns().size();i++){
+    if (ps->get_patterns().at(i).match(ins)){
+      res->push_back(i);
+    }
+  }
+
+  free(ins);
+  return res;
+}
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t, vector<int> * largeErrSet){
+  free_p(Xs);
+  free_p(t);
+  Xs = new vector<vector<int>*>();
+  t = new vector<int>();
+  ofstream out;
+  out.open(file, ios::out);
+  for (int k = 0; k != largeErrSet->size(); k++){
+    int index = largeErrSet->at(k);
+    ArffInstance* x = ds->get_instance(index);
+    ArffValue* y = x->get(classIndex);
+    int target = bin_value(y,ds,divider,classIndex);
+    //remove higher bits representing the attributes indexs
+    target = target & ((1<<ATTR_SHIFT)-1);
+    out<<target;
+    t->push_back(target);
+    vector<int> *ins = new vector<int>();
+    for (int j = 0; j != ds->num_attributes(); j++){
+      if (j==classIndex) continue;
+      ArffValue* v = x->get(j);
+      //std::string s = *v;
+      if (!v->missing()){
+        int val = bin_value(v,ds,divider,j);
+        out<<" "<<val;
+        ins->push_back(val);
+      }
+    }
+    Xs->push_back(ins);
+    out << endl;
+  }
+  out.close();
+}
+
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t){ 
   free_p(Xs);
   free_p(t);
   Xs = new vector<vector<int>*>();
@@ -256,12 +316,6 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
   ofstream out;
   out.open(file, ios::out);
   for (int i = 0; i != ds->num_instances(); i++){
-    if (largeErrSet!=0){
-      if ( std::find(largeErrSet->begin(), largeErrSet->end(), i) == largeErrSet->end() )
-      {
-        continue;
-      }
-    }
     ArffInstance* x = ds->get_instance(i);
     ArffValue* y = x->get(classIndex);
     int target = bin_value(y,ds,divider,classIndex);
@@ -287,7 +341,7 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
 }
 
 
-void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeErrSet, vector<int> *smallErrSet, float rho){
+CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeErrSet, vector<int> *smallErrSet, float rho){
 
   if(largeErrSet == 0){
     largeErrSet = new vector<int>();
@@ -301,8 +355,8 @@ void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeEr
 
 
   // Train the SVM
-  CvNormalBayesClassifier NBC;
-  NBC.train(trainingX.rowRange(0,100), trainingY.rowRange(0,100), Mat(), Mat());
+  CvNormalBayesClassifier* NBC = new CvNormalBayesClassifier();
+  NBC->train(trainingX, trainingY, Mat(), Mat());
  
 
   float err=0;
@@ -311,9 +365,9 @@ void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeEr
     Mat prob = Mat::zeros(1,3,CV_32FC1);
     CvMat probs = prob;
     
-    float response = NBC.predict(&sample,0,&probs);
+    float response = NBC->predict(&sample,0,&probs);
 
-    if (fabs(NBC.predict(&sample)- trainingY.at<float>(i,0))>1e-7){
+    if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
       err += 1;
       largeErrSet->push_back(i);
     } else if (probs.data.fl[(int)response] < rho){
@@ -324,6 +378,7 @@ void baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeEr
   }
   cout<<"trainning err = "<<err/trainingX.rows<<endl;
   cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows<<endl;
+  return NBC;
 }
 
 //#define CPXC_DEBUG
@@ -367,7 +422,7 @@ int main(int argc, char** argv){
   vector<int>* smallErrSet = new vector<int>();
 
 
-  baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,20);
+  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,20);
 
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
@@ -392,13 +447,30 @@ int main(int argc, char** argv){
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
 
-  patternSet->print();
+  //patternSet->print();
 
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
 
-  get_instances_for_each_pattern(patternSet, newXs, ins);
+  get_instances_for_each_pattern(patternSet, newXs, ins, largeErrSet);
 
+  CPXC classifier;
+  classifier.num_of_classes = num_of_classes;
+  LocalClassifier* base = new LocalClassifier();
+  base->NBC = nbc;
+  classifier.train(patternSet,trainingX,trainingY,ins,base );
 
+  int err =0;
+  for (int i = 0; i < ds->num_instances();i++){
+    vector<int>* md = get_matches(ds,divider,patternSet,classIndex,i);
+    float response = classifier.predict(trainingX.row(i),md);
+    if (response != trainingY.at<float>(i,0)){
+      err++;
+    }
+  }
+  cout<<"class err = "<<err*1.0/trainingX.rows<<endl;
+
+  free(base);
+  free(ins);
   free(smallErrSet);
   free(largeErrSet);
   free(xs);
