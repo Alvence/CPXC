@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <vector>
+#include <algorithm>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -126,6 +128,25 @@ void analyze_params(int argc, char ** argv){
 }
 
 
+int get_bin_value(ArffData* ds, string nominal, int attr_index){
+  string name = ds->get_attr(attr_index)->name();
+  vector<string> nominals = ds->get_nominal(name);
+  int value = 0;
+  while (value < nominals.size() && nominals[value]!=nominal){
+    value++;
+  }
+  return ((attr_index+1)<<ATTR_SHIFT) + value;
+}
+
+int bin_value(ArffValue *v, ArffData* ds, BinDivider* divider, int index){
+  int str=-1;
+  if (v->type() == FLOAT || v->type() == INTEGER){
+    str = divider->get_bin_value((float)(*v),index);
+  }else if(v->type()==STRING||v->type()==DATE){
+    str = get_bin_value(ds,(string)(*v),index);
+  }
+  return str;
+}
 template <class T>
 void vectorToMat(vector<T>* vec, Mat &mat){
   //TODO makesure dimensions are equal
@@ -152,6 +173,22 @@ int get_nominal_index(ArffNominal nominals, String name){
   }
   return -1;
 }
+
+void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const xs, vector<vector<int>*>* &ins){
+  vector<Pattern> patterns = ps->get_patterns();
+  for (int i = 0;i < xs->size();i++){
+    vector<int>* x = xs->at(i);
+    for (int j = 0; j < patterns.size();j++){
+      if (patterns[j].match(x)){
+        if(ins->at(j) == NULL){
+          ins->at(j) = new vector<int> ();
+        }
+        ins->at(j)->push_back(i);
+      }
+    }
+  }
+}
+
 
 void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   int cols = 0;
@@ -219,6 +256,12 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
   ofstream out;
   out.open(file, ios::out);
   for (int i = 0; i != ds->num_instances(); i++){
+    if (largeErrSet!=0){
+      if ( std::find(largeErrSet->begin(), largeErrSet->end(), i) == largeErrSet->end() )
+      {
+        continue;
+      }
+    }
     ArffInstance* x = ds->get_instance(i);
     ArffValue* y = x->get(classIndex);
     int target = bin_value(y,ds,divider,classIndex);
@@ -320,11 +363,44 @@ int main(int argc, char** argv){
     divider->init_minimal_entropy(ds, classIndex, sc);
   }
   
-  baseline_classfier_NBC(trainingX,trainingY,0,0,20);
+  vector<int>* largeErrSet = new vector<int>();
+  vector<int>* smallErrSet = new vector<int>();
 
-  
+
+  baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,20);
+
+  vector<int>* targets = new vector<int>();
+  vector<vector<int> *>* newXs = new vector<vector<int> *>();
+
+  generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, largeErrSet);
 
 
+  num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
+  char tempDPMFile[32];
+  strcpy(tempDPMFile,tempDir);
+  strcat(tempDPMFile,"/result");
+  //generating constrast pattern files
+#ifdef CPXC_DEBUG
+  printf("generating contrast patterns.\n");
+#endif
+  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
+
+  cout<<"# of patterns = "<<num_patterns<<endl; 
+
+
+  PatternSet* patternSet = new PatternSet();
+  strcat(tempDPMFile,".closed");
+  patternSet->read(tempDPMFile);
+
+  patternSet->print();
+
+  vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
+
+  get_instances_for_each_pattern(patternSet, newXs, ins);
+
+
+  free(smallErrSet);
+  free(largeErrSet);
   free(xs);
   free(ys);
   return 0;

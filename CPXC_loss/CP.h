@@ -32,6 +32,7 @@ public:
   
   vector<int> translate_input(vector<int>);
   inline int get_size(){return size;}
+  inline vector<Pattern> get_patterns(){return patterns;}
 };
 
 #endif
