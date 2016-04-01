@@ -193,7 +193,7 @@ void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const
 }
 
 
-void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
+void translate_input(ArffData *ds, vector<vector<int>* >* xs, vector<int>* ys, Mat &trainingX, Mat& trainingY){
   int cols = 0;
   int num_of_attr = ds->num_attributes();
   int num_of_instances = ds-> num_instances();
@@ -396,7 +396,7 @@ int main(int argc, char** argv){
   ArffParser parser(datafile);
   //parse the data
   ArffData *ds = parser.parse();
-  translate_input(ds,trainingX,trainingY);
+  translate_input(ds,xs, ys, trainingX,trainingY);
  
   num_of_attributes = ds->num_attributes();
   if (classIndex == -1){
@@ -422,7 +422,7 @@ int main(int argc, char** argv){
   vector<int>* smallErrSet = new vector<int>();
 
 
-  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,20);
+  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,0);
 
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
