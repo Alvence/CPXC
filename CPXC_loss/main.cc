@@ -193,7 +193,7 @@ void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const
 }
 
 
-void translate_input(ArffData *ds, vector<vector<int>* >* xs, vector<int>* ys, Mat &trainingX, Mat& trainingY){
+void translate_input(ArffData *ds, vector<vector<float>* >* xs, vector<float>* ys, Mat &trainingX, Mat& trainingY){
   int cols = 0;
   int num_of_attr = ds->num_attributes();
   int num_of_instances = ds-> num_instances();
@@ -428,7 +428,6 @@ int main(int argc, char** argv){
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
 
   generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, largeErrSet);
-
 
   num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   char tempDPMFile[32];

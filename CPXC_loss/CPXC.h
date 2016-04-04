@@ -21,6 +21,9 @@ public:
 };
 
 class CPXC{
+private:
+  std::vector<int>* getMatches(cv::Mat sample);
+
 public:
   std::vector<LocalClassifier*> * classifiers;
   LocalClassifier* defaultClassifier;
@@ -29,7 +32,12 @@ public:
   CPXC(){
     classifiers = new std::vector<LocalClassifier*>();
   }
+  ~CPXC(){
+    delete classifiers;
+    classifiers = NULL;
+  }
   void train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier);
   float predict(cv::Mat sample, vector<int>* matches);
+  float predict(cv::Mat sample);
 };
 #endif

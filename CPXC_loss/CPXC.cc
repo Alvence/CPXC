@@ -1,6 +1,8 @@
 #include "CPXC.h"
 
 #include <cmath>
+
+#include "Utils.h"
 using namespace cv;
 using namespace std;
 float LocalClassifier::train(Mat & trainingX, Mat & trainingY){
@@ -80,6 +82,30 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
   else{
     defaultClassifier = baseClassifier;
   }
+}
+
+vector<int>* CPXC::getMatches(cv::Mat sample){
+  vector<int> ins;
+  for (int i =0; i<sample.cols; i++){
+    ins.push_back((int)sample.at<float>(0,i));
+  }
+  print_vector(ins);
+  vector<int> * res = new vector<int>();
+  for (int i =0; i< classifiers->size(); i++){
+    if (classifiers->at(i)->pattern->match(ins)){
+      res->push_back(i);
+    }
+  }
+  //cout<<res->size()<<endl;
+  return res;
+}
+
+float CPXC::predict(cv::Mat sample){
+  vector<int> *matches = getMatches(sample);
+  float response = predict(sample,matches);
+  delete matches;
+  matches = NULL;
+  return response;
 }
 
 float CPXC::predict(cv::Mat sample, vector<int>* matches){
