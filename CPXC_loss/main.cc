@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <unistd.h>
-
+#include <math.h>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -49,12 +49,6 @@ int num_of_attributes;
 int num_of_classes;
 string algStr = "nbc";
 
-Mat trainingX; 
-Mat trainingY;
-Mat testingX;
-Mat testingY;
-vector<vector<float>* >*xs = new vector<vector<float>* >();
-vector<float> * ys = new vector<float> ();
 
 void analyze_params(int argc, char ** argv){
   int opt= 0;
@@ -77,7 +71,7 @@ void analyze_params(int argc, char ** argv){
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:f:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
@@ -193,12 +187,12 @@ void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const
 }
 
 
-void translate_input(ArffData *ds, vector<vector<float>* >* xs, vector<float>* ys, Mat &trainingX, Mat& trainingY){
+void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   int cols = 0;
+  vector<vector<float>* >*xs = new vector<vector<float>* >();
+  vector<float> * ys = new vector<float> ();
   int num_of_attr = ds->num_attributes();
   int num_of_instances = ds-> num_instances();
-  ys->clear();
-  xs->clear();
   for (int i = 0; i != num_of_instances; i++){
     cols = 0;
     ArffInstance *ins = ds->get_instance(i);
@@ -248,6 +242,8 @@ void translate_input(ArffData *ds, vector<vector<float>* >* xs, vector<float>* y
   trainingY = Mat::zeros(num_of_instances,1,CV_32FC1);
   vectorToMat(ys,trainingY);
   vectorsToMat(xs,trainingX);
+  free(xs);
+  free(ys);
 }
 
 vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int classIndex, int index){
@@ -358,19 +354,43 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
   CvNormalBayesClassifier* NBC = new CvNormalBayesClassifier();
   NBC->train(trainingX, trainingY, Mat(), Mat());
  
-
+  float low = 30000;
+  float high = 0;
   float err=0;
+  int N = trainingX.rows;
+  int size = 0;
+  int r = 0;
+  for (int ratio = 0; ratio < 500; ratio+=20){
+    int tempSize = 0;
+    for (int i =0; i< trainingX.rows;i++){
+      CvMat sample = trainingX.row(i);
+      Mat prob = Mat::zeros(1,3,CV_32FC1);
+      CvMat probs = prob;
+
+      float response = NBC->predict(&sample,0,&probs);
+      if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
+        tempSize++;
+      } else if (probs.data.fl[(int)response] < ratio){
+        tempSize++;
+      }
+    }
+    if (fabs(tempSize - N*rho) < fabs(size - N*rho)){
+      size = tempSize;
+      r = ratio;
+    }
+  }
+
+
   for (int i =0; i< trainingX.rows;i++){
     CvMat sample = trainingX.row(i);
     Mat prob = Mat::zeros(1,3,CV_32FC1);
     CvMat probs = prob;
-    
-    float response = NBC->predict(&sample,0,&probs);
 
+    float response = NBC->predict(&sample,0,&probs);
     if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
       err += 1;
       largeErrSet->push_back(i);
-    } else if (probs.data.fl[(int)response] < rho){
+    } else if (probs.data.fl[(int)response] < r){
       largeErrSet->push_back(i);
     }else{
       smallErrSet->push_back(i);
@@ -381,8 +401,9 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
   return NBC;
 }
 
+
 //#define CPXC_DEBUG
-int main(int argc, char** argv){
+float run(int argc, char** argv, int first, int last){
   analyze_params(argc,argv);
   int num_patterns;
   char tempDataFile[32];
@@ -395,9 +416,14 @@ int main(int argc, char** argv){
   //open data file with arff format
   ArffParser parser(datafile);
   //parse the data
-  ArffData *ds = parser.parse();
-  translate_input(ds,xs, ys, trainingX,trainingY);
+  ArffData *dsa = parser.parse();
  
+  ArffData *ds = new ArffData();
+  ArffData *testingds = new ArffData();
+
+  dsa->split(testingds, ds, first, last);
+
+  //cout<<trainingds->num_instances()<<"   "<<testingds->num_instances()<<endl;
   num_of_attributes = ds->num_attributes();
   if (classIndex == -1){
     classIndex = num_of_attributes - 1;
@@ -411,6 +437,15 @@ int main(int argc, char** argv){
     cout<<"set min_sup="<<min_sup<<endl;
 #endif
   }
+
+  Mat trainingX; 
+  Mat trainingY;
+  Mat testingX;
+  Mat testingY;
+
+  translate_input(ds, trainingX,trainingY);
+  translate_input(testingds, testingX,testingY);
+
   BinDivider* divider= new BinDivider();
   if (equalwidth){
     divider->init_equal_width(ds,5);
@@ -422,8 +457,7 @@ int main(int argc, char** argv){
   vector<int>* smallErrSet = new vector<int>();
 
 
-  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,0);
-
+  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,0.5);
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
 
@@ -437,10 +471,17 @@ int main(int argc, char** argv){
 #ifdef CPXC_DEBUG
   printf("generating contrast patterns.\n");
 #endif
-  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
-
-  cout<<"# of patterns = "<<num_patterns<<endl; 
-
+  vector<int> classes(num_of_classes,0);
+  for (int i = 0;i < trainingY.rows; i++){
+    classes[(int)trainingY.at<float>(i,0)] = 1;
+  }
+  int real_num_class = 0;
+  for (int i = 0; i < classes.size(); i++){
+    real_num_class += classes[i];
+  }
+  num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
+  
+  //cout<<"# of patterns = "<<num_patterns<<endl; 
 
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
@@ -456,25 +497,30 @@ int main(int argc, char** argv){
   classifier.num_of_classes = num_of_classes;
   LocalClassifier* base = new LocalClassifier();
   base->NBC = nbc;
+  //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
   classifier.train(patternSet,trainingX,trainingY,ins,base );
 
   int err =0;
-  for (int i = 0; i < ds->num_instances();i++){
-    vector<int>* md = get_matches(ds,divider,patternSet,classIndex,i);
-    float response = classifier.predict(trainingX.row(i),md);
-    if (response != trainingY.at<float>(i,0)){
+  for (int i = 0; i < testingds->num_instances();i++){
+    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    float response = classifier.predict(testingX.row(i),md);
+    if (response != testingY.at<float>(i,0)){
       err++;
     }
   }
-  cout<<"class err = "<<err*1.0/trainingX.rows<<endl;
-
-  free(base);
-  free(ins);
-  free(smallErrSet);
-  free(largeErrSet);
-  free(xs);
-  free(ys);
-  return 0;
+  //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
+  //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;
+  //free(patternSet);
+  //free(base);
+  //free(ins);
+  //free(smallErrSet);
+  //free(largeErrSet);
+  
+  //free(base);
+  //free(ins);
+  //free(smallErrSet);
+  //free(largeErrSet);
+  return err*1.0/testingX.rows;
 }
 
 template <class T>
@@ -485,3 +531,33 @@ void free(T* p){
   }
 }
 
+int main(int argc, char** argv){
+  float error = 0.0;
+  analyze_params(argc,argv);
+  //open data file with arff format
+  ArffParser parser(datafile);
+  //parse the data
+  ArffData *dsa = parser.parse();
+  int fold = 10;
+  int N = dsa->num_instances();
+  //int N = 59;
+  float stepsize = N*1.0/fold;
+  float start = 0;
+  float end = start + stepsize;
+  for (int n = 0; n < fold; n++){
+    int first = (int)start;
+    start = end;
+    int last = (int)end;
+    end += stepsize;
+    if (end > N){
+      end = N;
+    }
+  /*  if (n!=cv_fold){
+      continue;
+    }*/
+    float err = run(argc,argv, first, last);
+    cout<<"fold "<<n<<"  error="<<err<<endl;
+    error+=err;
+  }
+  //cout<<"avg erddror" <<error/fold<<endl;
+}

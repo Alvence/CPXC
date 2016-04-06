@@ -128,6 +128,14 @@ public:
      */
     void write_arff(const std::string& file);
 
+    /**
+     * @brief Split the dataset into two sets, first in range [first,last) and rest in the second.
+     * @param d1 pointer to first subset
+     * @param d2 pointer to second subset
+     * @first starting index for d1
+     * @last  ending index for d1
+     */
+    void split(ArffData* d1, ArffData* d2, int first, int last);
 
 private:
     /**

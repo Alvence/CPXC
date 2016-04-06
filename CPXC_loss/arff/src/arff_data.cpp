@@ -61,6 +61,34 @@ void ArffData::add_instance(ArffInstance* inst) {
     ++m_num_instances;
 }
 
+void ArffData::split(ArffData*d1, ArffData*d2, int first, int last){
+  d1->m_rel = this->m_rel; 
+  d2->m_rel = this->m_rel;
+  d1->m_nominals = this->m_nominals;
+  d2->m_nominals = this->m_nominals;
+  d1->m_formats = this->m_formats;
+  d2->m_formats = this->m_formats;
+  d1->m_num_attrs = this->m_num_attrs;
+  d2->m_num_attrs = this->m_num_attrs;
+  d1->m_attrs = this->m_attrs;
+  d2->m_attrs = this->m_attrs;
+
+  d1->m_num_instances = 0;
+  d2->m_num_instances = 0;
+  d1->m_instances.clear();
+  d2->m_instances.clear();
+
+  for (int i = 0; i < this->m_num_instances; i++){
+    if (i>=first && i <last){
+      d1->m_num_instances++;
+      d1->m_instances.push_back(this->m_instances.at(i));
+    }else{
+      d2->m_num_instances++;
+      d2->m_instances.push_back(this->m_instances.at(i));
+    }
+  }
+}
+
 ArffInstance* ArffData::get_instance(int32 idx) const {
     if((idx < 0) || (idx >= m_num_instances)) {
         THROW("%s index out of bounds! idx=%d size=%d",
