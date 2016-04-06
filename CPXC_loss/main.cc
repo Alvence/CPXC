@@ -48,7 +48,7 @@ int cv_fold = 10;
 int num_of_attributes;
 int num_of_classes;
 string algStr = "nbc";
-
+float ro = 0.5;
 
 void analyze_params(int argc, char ** argv){
   int opt= 0;
@@ -63,6 +63,7 @@ void analyze_params(int argc, char ** argv){
       {"delta",     optional_argument, 0,  'l' },
       {"stopc",     optional_argument, 0,  'o' },
       {"fold",     optional_argument, 0,  'f' },
+      {"rho",     optional_argument, 0,  'i' },
       {"eq",     optional_argument, 0,  'e' },
       {"alg",     optional_argument, 0,  'a' },
       {"sr",     optional_argument, 0,  'r' }, 
@@ -71,7 +72,7 @@ void analyze_params(int argc, char ** argv){
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:f:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:f:i:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
@@ -85,6 +86,8 @@ void analyze_params(int argc, char ** argv){
         break;
       case 's' : min_sup = atoi(optarg);
         break;
+      case 'i':  ro = atof(optarg);
+                 break;
       case 'l' : delta = atoi(optarg);
         break;
       case 'r':
@@ -354,13 +357,13 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
   CvNormalBayesClassifier* NBC = new CvNormalBayesClassifier();
   NBC->train(trainingX, trainingY, Mat(), Mat());
  
-  float low = 30000;
-  float high = 0;
   float err=0;
   int N = trainingX.rows;
   int size = 0;
   int r = 0;
-  for (int ratio = 0; ratio < 500; ratio+=20){
+  float low = 10000;
+  float high = -10000;
+  for (int ratio = -100; ratio < 100; ratio+=1){
     int tempSize = 0;
     for (int i =0; i< trainingX.rows;i++){
       CvMat sample = trainingX.row(i);
@@ -370,7 +373,7 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
       float response = NBC->predict(&sample,0,&probs);
       if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
         tempSize++;
-      } else if (probs.data.fl[(int)response] < ratio){
+      } else if (log10(probs.data.fl[(int)response]) < ratio){
         tempSize++;
       }
     }
@@ -387,17 +390,23 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
     CvMat probs = prob;
 
     float response = NBC->predict(&sample,0,&probs);
+    if (probs.data.fl[(int)response] < low ){
+      low =  probs.data.fl[(int)response]; 
+    }
+    if (probs.data.fl[(int)response] >high ){
+      high =  probs.data.fl[(int)response]; 
+    }
     if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
       err += 1;
       largeErrSet->push_back(i);
-    } else if (probs.data.fl[(int)response] < r){
+    } else if (log10(probs.data.fl[(int)response]) < r){
       largeErrSet->push_back(i);
     }else{
       smallErrSet->push_back(i);
     }
   }
-  cout<<"trainning err = "<<err/trainingX.rows<<endl;
-  cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows<<endl;
+  //cout<<"trainning err = "<<err/trainingX.rows<<endl;
+  cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows <<"high = "<<high<<"  low ="<<low<<endl;
   return NBC;
 }
 
@@ -457,7 +466,7 @@ float run(int argc, char** argv, int first, int last){
   vector<int>* smallErrSet = new vector<int>();
 
 
-  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,0.5);
+  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,ro);
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
 
@@ -481,7 +490,7 @@ float run(int argc, char** argv, int first, int last){
   }
   num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
   
-  //cout<<"# of patterns = "<<num_patterns<<endl; 
+  cout<<"# of patterns = "<<num_patterns<<endl; 
 
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
@@ -552,9 +561,9 @@ int main(int argc, char** argv){
     if (end > N){
       end = N;
     }
-  /*  if (n!=cv_fold){
+    if (n!=cv_fold){
       continue;
-    }*/
+    }
     float err = run(argc,argv, first, last);
     cout<<"fold "<<n<<"  error="<<err<<endl;
     error+=err;
