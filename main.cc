@@ -37,6 +37,7 @@ int min_sup = -1;
 float min_sup_ratio = 0.01; //default min sup = 1%
 int delta = 6;
 float prune_threshold = 0.3;
+float prune_sigma = 0.6;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
 bool testProvided = false;
@@ -138,11 +139,12 @@ void analyze_params(int argc, char ** argv){
       {"alg",     optional_argument, 0,  'a' },
       {"sr",     optional_argument, 0,  'r' }, 
       {"p_threshold",     optional_argument, 0,  'h' },
+      {"p_sigma",     optional_argument, 0,  'g' },
       {0,           0,                 0,  0   }
   };
 
   int long_index =0;
-  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:", 
+  while ((opt = getopt_long(argc, argv,"ed:t:c:s:l:o:a:b:r:h:g:", 
                  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'd' : strcpy(datafile,optarg);
@@ -156,6 +158,9 @@ void analyze_params(int argc, char ** argv){
         break;
       case 's' : min_sup = atoi(optarg);
         break;
+      case 'g':
+                 prune_sigma = strtof(optarg,NULL);
+                 break;
       case 'l' : delta = atoi(optarg);
         break;
       case 'r':
@@ -273,7 +278,7 @@ int main(int argc, char** argv){
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
 
-  patternSet->prune_AMI(binning_xs, prune_threshold);
+  patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
 //  patternSet->print();
 
   //translate input

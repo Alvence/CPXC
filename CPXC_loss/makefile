@@ -18,11 +18,11 @@ CC      := g++
 MAKE    := make
 RM 			:= rm
 CFLAGS := -g -w 
-LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc 
-INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IDPM
+LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB) -LDPM -lDPM -LGcGrowth -lGcGrowth `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc 
+INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IDPM -IGcGrowth
 LD       := g++
 LDFLAGS  := -g -Wall -shared
-SUBDIRS = arff DPM
+SUBDIRS = arff DPM GcGrowth
 TARGET   := main
 
 
@@ -31,6 +31,7 @@ all: LIBS $(OBJFILES) $(TARGET)
 LIBS:
 	$(MAKE) -C arff
 	$(MAKE) -C DPM
+	$(MAKE) -C GcGrowth
 
 ### target ###
 $(TARGET): $(OBJECTS) main.cc

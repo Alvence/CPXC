@@ -365,6 +365,7 @@ void PatternSet::read(char* file){
     int num_item;
     vector<int> items;
     iss >> num_item;
+    if (num_item==0) continue;
     for (int i=0; i<num_item; i++){
       int item;
       iss>>item;

@@ -9,7 +9,7 @@ do
       for ratio in 50 30 20 10 7 5
       do
         echo "./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg"
-        timeout 2000 ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> log/log2006.txt
+        timeout 2000 ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> log/log2007_jaccardDistance.txt
      done
     done
   done

@@ -47,7 +47,7 @@ bool Pattern::match(vector<int> instance){
 }
 
 float Pattern::distance(Pattern p){
-  int count = 0;
+  /*int count = 0;
   for (int i = 0; i < items.size();i++){
     int item = items[i];
     int value = item & ((1<<ATTR_SHIFT)-1);
@@ -65,6 +65,26 @@ float Pattern::distance(Pattern p){
     }
   }
   return count;
+  */int count = 0;
+  int disjoint = 0;
+  for (int i = 0; i < items.size();i++){
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
+    for (int j = 0; j < p.items.size(); j++){  
+      int item2 = items[i];
+      int value2 = item2 & ((1<<ATTR_SHIFT)-1);
+      int attr_index2 = item2 >> ATTR_SHIFT;
+      
+      if(attr_index == attr_index2){
+        if (value != value2){
+          count ++;
+        }
+      }
+    }
+  }
+  disjoint = items.size()+p.items.size() - count;
+  return count*1.0/disjoint;
 }
 
 void Pattern::print(){
@@ -317,7 +337,7 @@ bool operator<(const PatternPair& lhs, const PatternPair& rhs)
 }
 
 
-void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
+void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigma){
   priority_queue< PatternPair, vector<PatternPair>, less<PatternPair> > queue;
   
   vector<int> stat(10,0);
@@ -356,18 +376,20 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
   */
   //TODO
   vector<Pattern> newPs;
-  while (!queue.empty() && queue.top().score >= threshold && queue.top().distance < 2){
+  while (!queue.empty()){
     PatternPair p = queue.top();
     queue.pop();
+    if (queue.top().score >= threshold || queue.top().distance >= sigma ){
     //cout << p.p1<<" "<<p.p2 << " score = " << p.score<<endl;
-    if ((!flag[p.p1])&&(!flag[p.p2])){
-      Pattern p1 = patterns[p.p1];
-      Pattern p2 = patterns[p.p2];
-      p1.merge(p2);
-      newPs.push_back(p1);
-      ///cout<<"merge: "<<p.p1<<" and "<<p.p2<<endl;
-      flag[p.p1] = true;
-      flag[p.p2] = true;
+      if ((!flag[p.p1])&&(!flag[p.p2])){
+        Pattern p1 = patterns[p.p1];
+        Pattern p2 = patterns[p.p2];
+        p1.merge(p2);
+        newPs.push_back(p1);
+        ///cout<<"merge: "<<p.p1<<" and "<<p.p2<<endl;
+        flag[p.p1] = true;
+        flag[p.p2] = true;
+      }
     }
   }
   for (int i = 0; i < size; i++){

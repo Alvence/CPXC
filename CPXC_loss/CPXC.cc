@@ -26,7 +26,11 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
   classifiers->clear();
   for (int i = 0; i < mds->size(); i++){
     vector<int>* md = mds->at(i);
-    if (md->size()<1){
+    if (md==NULL || md->size()<1){
+      LocalClassifier* cf = new LocalClassifier();
+      cf->weight = 0;
+      cf->singleClass = 1;
+      classifiers->push_back(cf);
       continue;
     }
     LocalClassifier* cf = new LocalClassifier();

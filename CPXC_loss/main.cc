@@ -20,6 +20,7 @@
 #include <arff_value.h>
 
 #include <DPM.h>
+#include <gcgrowth.h>
 
 #include "BinDivider.h"
 #include "CP.h"
@@ -86,7 +87,7 @@ void analyze_params(int argc, char ** argv){
         break;
       case 's' : min_sup = atoi(optarg);
         break;
-      case 'i':  ro = atof(optarg);
+      case 'i':  ro = strtof(optarg,NULL);
                  break;
       case 'l' : delta = atoi(optarg);
         break;
@@ -488,8 +489,8 @@ float run(int argc, char** argv, int first, int last){
   for (int i = 0; i < classes.size(); i++){
     real_num_class += classes[i];
   }
-  num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
-  
+  //num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
+  num_patterns = gcgrowth(tempDataFile,tempDPMFile,min_sup);
   cout<<"# of patterns = "<<num_patterns<<endl; 
 
   PatternSet* patternSet = new PatternSet();
@@ -508,7 +509,6 @@ float run(int argc, char** argv, int first, int last){
   base->NBC = nbc;
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
   classifier.train(patternSet,trainingX,trainingY,ins,base );
-
   int err =0;
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
