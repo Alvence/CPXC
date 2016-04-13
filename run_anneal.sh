@@ -8,7 +8,7 @@ do
       for ratio in 50 30 20 10 7 5
       do
         echo "./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg"
-        timeout 300 ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> log/log-anneal.txt
+        ./main -t temp -d $file -r $min_sup_ratio -l $ratio -a $alg >> new/log-anneal.txt
      done
     done
   done

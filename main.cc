@@ -17,12 +17,13 @@
 #include <arff_data.h>
 #include <arff_value.h>
 
-#include <DPM.h>
 
 #include "BinDivider.h"
 #include "CP.h"
 #include "Utils.h"
 #include "MLAlg.h"
+
+#include <gcgrowth.h>
 
 using namespace cv;
 using namespace std;
@@ -46,6 +47,7 @@ int cv_fold = 10;
 int num_of_attributes;
 int num_of_classes;
 string algStr = "nbc";
+
 
 vector<int>* targets=NULL;
 vector<vector<int>*> *xs=NULL;
@@ -271,14 +273,14 @@ int main(int argc, char** argv){
 #ifdef CPXC_DEBUG
   printf("generating contrast patterns.\n");
 #endif
-  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
-
+  //num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
+  num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
   //read patterns
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
 
-  patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
+  //patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
 //  patternSet->print();
 
   //translate input
