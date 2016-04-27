@@ -282,6 +282,10 @@ int main(int argc, char** argv){
 
   //patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
 //  patternSet->print();
+  cout<< "num before = "<<num_patterns <<"   after = "<<patternSet->get_size()<<endl;
+  if(true){
+    return 0;
+  }
 
   //translate input
   translate_input(patternSet, binning_xs, xs);

@@ -381,7 +381,7 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
     queue.pop();
     if (queue.top().score >= threshold || queue.top().distance >= sigma ){
     //cout << p.p1<<" "<<p.p2 << " score = " << p.score<<endl;
-      if ((!flag[p.p1])&&(!flag[p.p2])){
+    if ((!flag[p.p1])&&(!flag[p.p2])){
         Pattern p1 = patterns[p.p1];
         Pattern p2 = patterns[p.p2];
         p1.merge(p2);
