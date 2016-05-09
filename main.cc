@@ -23,7 +23,8 @@
 #include "Utils.h"
 #include "MLAlg.h"
 
-#include <gcgrowth.h>
+//#include <gcgrowth.h>
+#include <DPM.h>
 
 using namespace cv;
 using namespace std;
@@ -249,6 +250,9 @@ int main(int argc, char** argv){
   }else{
     divider->init_minimal_entropy(ds, classIndex, sc);
   }
+
+  //divider->print();
+
   //sava training temp data file
 #ifdef CPXC_DEBUG
   printf("saving training data to %s\n",tempDataFile);
@@ -273,15 +277,16 @@ int main(int argc, char** argv){
 #ifdef CPXC_DEBUG
   printf("generating contrast patterns.\n");
 #endif
-  //num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
-  num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
+  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
+  //num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
   //read patterns
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
   patternSet->read(tempDPMFile);
+patternSet->print();
 
-  //patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
-//  patternSet->print();
+  patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
+  //patternSet->print();
   cout<< "num before = "<<num_patterns <<"   after = "<<patternSet->get_size()<<endl;
   if(true){
     return 0;

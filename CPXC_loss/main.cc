@@ -489,6 +489,7 @@ float run(int argc, char** argv, int first, int last){
   for (int i = 0; i < classes.size(); i++){
     real_num_class += classes[i];
   }
+
   //num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
   num_patterns = gcgrowth(tempDataFile,tempDPMFile,min_sup);
   cout<<"# of patterns = "<<num_patterns<<endl; 
@@ -498,6 +499,14 @@ float run(int argc, char** argv, int first, int last){
   patternSet->read(tempDPMFile);
 
   //patternSet->print();
+
+  cout<<"pattern number="<<num_patterns<<endl;
+
+
+  if(true){
+    return 0;
+  }
+
 
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
 

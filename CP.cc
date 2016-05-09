@@ -72,14 +72,14 @@ float Pattern::distance(Pattern p){
     int value = item & ((1<<ATTR_SHIFT)-1);
     int attr_index = item >> ATTR_SHIFT;
     for (int j = 0; j < p.items.size(); j++){  
-      int item2 = items[i];
+      int item2 = p.items[j];
       int value2 = item2 & ((1<<ATTR_SHIFT)-1);
       int attr_index2 = item2 >> ATTR_SHIFT;
       
       if(attr_index == attr_index2){
-        if (value != value2){
+        //if (value != value2){
           count ++;
-        }
+       // }
       }
     }
   }
@@ -88,9 +88,12 @@ float Pattern::distance(Pattern p){
 }
 
 void Pattern::print(){
-  cout<<num_item;
   for (int i = 0; i != items.size();i++){
-    cout<<" "<<items[i];
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
+    cout<<" ("<<attr_index<<" ,"<<value<<")";
+    //cout<<" "<<items[i];
   }
 
   for (int i = 0; i < union_patterns.size();i++){
@@ -339,7 +342,7 @@ bool operator<(const PatternPair& lhs, const PatternPair& rhs)
 
 void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigma){
   priority_queue< PatternPair, vector<PatternPair>, less<PatternPair> > queue;
-  
+ 
   vector<int> stat(10,0);
   bool flag[size];
   int neg = 0;
@@ -353,6 +356,12 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
       pair.score = AMI(patterns[i],patterns[j],xs);
       pair.distance = patterns[i].distance(patterns[j]);
 
+      if ((pair.score >= 0.2||  pair.distance>0.5)){
+        cout << i <<","<<j <<"  MI="<<pair.score << "  Dis="<<pair.distance<<endl;
+        //cout << "N_ij="<<count2(patterns[i],patterns[j],xs)<<" N_i="<<count(patterns[i],xs)<<" N_j="<<count(patterns[j],xs)<<"  N="<<xs->size()<<endl;
+        //patterns[i].print();
+        //patterns[j].print();
+      }
       if (isnan(pair.score)){
         pair.score = 0.0;
       }
@@ -437,6 +446,7 @@ vector<int> PatternSet::translate_input(vector<int> input){
 
 void PatternSet::print(){
   for (int i=0; i!=patterns.size(); i++){
+    cout<<"  P"<<i<<"   ";
     patterns[i].print();
   }
 }

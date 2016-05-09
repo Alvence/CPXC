@@ -21,6 +21,7 @@ public:
     BinDivider();
     ~BinDivider();
 
+    void print();
     void init_equal_width(ArffData* ds, int n);
     void init_minimal_entropy(ArffData* ds, int label_index, StoppingCreteria sc);
     float get_max(int attr_index);
