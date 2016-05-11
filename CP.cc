@@ -86,6 +86,9 @@ float Pattern::distance(Pattern p, BinDivider* divider){
           }else{
             distance+=1;
           }
+        //if (value != value2){
+          count ++;
+       // }
       }
     }
   }
@@ -97,12 +100,12 @@ float Pattern::distance(Pattern p, BinDivider* divider){
 }
 
 void Pattern::print(){
-  
   for (int i = 0; i != items.size();i++){
     int item = items[i];
     int value = item & ((1<<ATTR_SHIFT)-1);
     int attr_index = item >> ATTR_SHIFT;
-    cout<<"  ("<<attr_index<<","<<value<<")";
+    cout<<" ("<<attr_index<<" ,"<<value<<")";
+    //cout<<" "<<items[i];
   }
 
   for (int i = 0; i < union_patterns.size();i++){
@@ -351,7 +354,7 @@ bool operator<(const PatternPair& lhs, const PatternPair& rhs)
 
 void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigma){
   priority_queue< PatternPair, vector<PatternPair>, less<PatternPair> > queue;
-  
+ 
   vector<int> stat(10,0);
   bool flag[size];
   int neg = 0;
@@ -365,6 +368,12 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
       pair.score = AMI(patterns[i],patterns[j],xs);
       pair.distance = patterns[i].distance(patterns[j], divider);
 
+      if ((pair.score >= 0.2||  pair.distance>0.5)){
+        cout << i <<","<<j <<"  MI="<<pair.score << "  Dis="<<pair.distance<<endl;
+        //cout << "N_ij="<<count2(patterns[i],patterns[j],xs)<<" N_i="<<count(patterns[i],xs)<<" N_j="<<count(patterns[j],xs)<<"  N="<<xs->size()<<endl;
+        //patterns[i].print();
+        //patterns[j].print();
+      }
       if (isnan(pair.score)){
         pair.score = 0.0;
       }
@@ -399,7 +408,7 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
     queue.pop();
     if (queue.top().score >= threshold || queue.top().distance >= sigma ){
     //cout << p.p1<<" "<<p.p2 << " score = " << p.score<<endl;
-      if ((!flag[p.p1])&&(!flag[p.p2])){
+    if ((!flag[p.p1])&&(!flag[p.p2])){
         Pattern p1 = patterns[p.p1];
         Pattern p2 = patterns[p.p2];
         p1.merge(p2);

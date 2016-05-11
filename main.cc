@@ -23,7 +23,8 @@
 #include "Utils.h"
 #include "MLAlg.h"
 
-#include <dpm.h>
+//#include <gcgrowth.h>
+#include <DPM.h>
 
 using namespace cv;
 using namespace std;
@@ -249,6 +250,9 @@ int main(int argc, char** argv){
   }else{
     divider->init_minimal_entropy(ds, classIndex, sc);
   }
+
+  //divider->print();
+
   //sava training temp data file
 #ifdef CPXC_DEBUG
   printf("saving training data to %s\n",tempDataFile);
@@ -285,8 +289,11 @@ int main(int argc, char** argv){
   patternSet->print();
 
   patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
-
-  if(1) return 1;
+  //patternSet->print();
+  cout<< "num before = "<<num_patterns <<"   after = "<<patternSet->get_size()<<endl;
+  if(true){
+    return 0;
+  }
   //translate input
   translate_input(patternSet, binning_xs, xs);
 

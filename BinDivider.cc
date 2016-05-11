@@ -111,6 +111,7 @@ void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, i
   vector<float> cutting_points;
   //calculate distinct values in order to find cutting points candidate
   sort(temp.begin(),temp.end());
+  //print_vector(temp);
   ////print_vector(set);
   ////print_vector(labels);
   temp.erase(unique(temp.begin(),temp.end()),temp.end());
@@ -200,9 +201,19 @@ void BinDivider::init_minimal_entropy(ArffData* ds, int label_index, StoppingCre
       }
     }
     discretize(set, labels, dividers, ds->get_nominal(ds->get_attr(label_index)->name()).size(), sc);
+    sort(dividers->begin(),dividers->end());
     bin_list->at(j) = dividers;
     ///cout<<"for att "<<j<<endl;
     ///print_vector(dividers);
+  }
+}
+
+void BinDivider::print(){
+  for (int i = 0 ; i < bin_list->size(); i++){
+    if(bin_list->at(i)!=NULL){
+      cout<<"attr "<<i<<"    "<<endl;
+      print_vector(bin_list->at(i));
+    }
   }
 }
 
