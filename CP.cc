@@ -46,7 +46,7 @@ bool Pattern::match(vector<int> instance){
   return false;
 }
 
-float Pattern::distance(Pattern p){
+float Pattern::distance(Pattern p, BinDivider* divider){
   /*int count = 0;
   for (int i = 0; i < items.size();i++){
     int item = items[i];
@@ -67,30 +67,42 @@ float Pattern::distance(Pattern p){
   return count;
   */int count = 0;
   int disjoint = 0;
+  float distance = 0;
   for (int i = 0; i < items.size();i++){
     int item = items[i];
     int value = item & ((1<<ATTR_SHIFT)-1);
-    int attr_index = item >> ATTR_SHIFT;
+    int attr_index = (item >> ATTR_SHIFT) - 1;
     for (int j = 0; j < p.items.size(); j++){  
-      int item2 = items[i];
+      int item2 = p.items[j];
       int value2 = item2 & ((1<<ATTR_SHIFT)-1);
-      int attr_index2 = item2 >> ATTR_SHIFT;
+      int attr_index2 = (item2 >> ATTR_SHIFT)-1;
       
       if(attr_index == attr_index2){
-        if (value != value2){
           count ++;
-        }
+          float mean1 = divider->get_mean_of_bin(attr_index,value);
+          float mean2 = divider->get_mean_of_bin(attr_index2,value2);
+          if (mean1>=0 && mean2>=0){
+            distance+= fabs(mean1-mean2);
+          }else{
+            distance+=1;
+          }
       }
     }
   }
-  disjoint = items.size()+p.items.size() - count;
-  return count*1.0/disjoint;
+  //disjoint = items.size()+p.items.size() - count;
+  if(count==0){
+    return 1e10;
+  }
+  return distance;
 }
 
 void Pattern::print(){
-  cout<<num_item;
+  
   for (int i = 0; i != items.size();i++){
-    cout<<" "<<items[i];
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
+    cout<<"  ("<<attr_index<<","<<value<<")";
   }
 
   for (int i = 0; i < union_patterns.size();i++){
@@ -351,11 +363,17 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
       pair.p1 = i;
       pair.p2 = j;
       pair.score = AMI(patterns[i],patterns[j],xs);
-      pair.distance = patterns[i].distance(patterns[j]);
+      pair.distance = patterns[i].distance(patterns[j], divider);
 
       if (isnan(pair.score)){
         pair.score = 0.0;
       }
+
+
+      if(pair.score > 0.2 || pair.distance < 1){
+        cout<<"p"<<i<<"  p"<<j<<"   AMI="<<pair.score<<"    distance="<<pair.distance<<endl;
+      }
+
 
       queue.push(pair);
      
@@ -401,7 +419,8 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold, float sigm
   patterns = newPs;
 }
 
-void PatternSet::read(char* file){
+void PatternSet::read(char* file, BinDivider* div){
+  divider = div;
   ifstream in;
   in.open(file);
   string line;
@@ -437,6 +456,7 @@ vector<int> PatternSet::translate_input(vector<int> input){
 
 void PatternSet::print(){
   for (int i=0; i!=patterns.size(); i++){
+    cout<<"p" <<i<<": ";
     patterns[i].print();
   }
 }

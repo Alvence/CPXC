@@ -23,7 +23,7 @@
 #include "Utils.h"
 #include "MLAlg.h"
 
-#include <gcgrowth.h>
+#include <dpm.h>
 
 using namespace cv;
 using namespace std;
@@ -273,18 +273,24 @@ int main(int argc, char** argv){
 #ifdef CPXC_DEBUG
   printf("generating contrast patterns.\n");
 #endif
-  //num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
-  num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
+  num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
+  //num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
+  cout<<"pattern before "<<num_patterns<<endl;
+  
   //read patterns
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
-  patternSet->read(tempDPMFile);
+  patternSet->read(tempDPMFile, divider);
 
-  //patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
-//  patternSet->print();
+  patternSet->print();
 
+  patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
+
+  if(1) return 1;
   //translate input
   translate_input(patternSet, binning_xs, xs);
+
+
 
   if (testProvided){
     translate_input(patternSet, test_binning_xs,test_xs);
