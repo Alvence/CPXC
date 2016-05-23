@@ -33,9 +33,9 @@ public:
   void prune_AMI(vector<vector<int>*>* xs, float threshold);
  
   //filter by 3 strategies used in CPXC
-  void filter();
+  void filter(vector<vector<int>*>* const xs, int num_attr);
   vector<int> translate_input(vector<int>);
-  inline int get_size(){return size;}
+  inline int get_size(){return patterns.size();}
   inline vector<Pattern> get_patterns(){return patterns;}
 };
 

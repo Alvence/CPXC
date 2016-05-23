@@ -25,11 +25,12 @@
 #include "BinDivider.h"
 #include "CP.h"
 #include "Utils.h"
-#include "MLAlg.h"
+//#include "MLAlg.h"
 #include "CPXC.h"
 
 using namespace cv;
 using namespace std;
+using namespace cv::ml;
 
 enum ClassifierAlg{ALG_SVM=0, ALG_NN, ALG_NBC};
 
@@ -38,7 +39,7 @@ char tempDir[256];
 char testfile[256];
 int classIndex=-1;
 int min_sup = -1;
-float min_sup_ratio = 0.01; //default min sup = 1%
+float min_sup_ratio = 0.02; //default min sup = 2%
 int delta = 6;
 float prune_threshold = 0.3;
 StoppingCreteria sc = NEVER;
@@ -49,7 +50,7 @@ int cv_fold = 10;
 int num_of_attributes;
 int num_of_classes;
 string algStr = "nbc";
-float ro = 0.5;
+float ro = 0.45;
 
 void analyze_params(int argc, char ** argv){
   int opt= 0;
@@ -243,7 +244,7 @@ void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
     xs->push_back(x);
   }
   trainingX = Mat::zeros(num_of_instances,cols,CV_32FC1);
-  trainingY = Mat::zeros(num_of_instances,1,CV_32FC1);
+  trainingY = Mat::zeros(num_of_instances,1,CV_32SC1);
   vectorToMat(ys,trainingY);
   vectorsToMat(xs,trainingX);
   free(xs);
@@ -341,7 +342,7 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
 }
 
 
-CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeErrSet, vector<int> *smallErrSet, float rho){
+Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, vector<int> *largeErrSet, vector<int> *smallErrSet,int num_classes,  float rho){
 
   if(largeErrSet == 0){
     largeErrSet = new vector<int>();
@@ -355,26 +356,32 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
 
 
   // Train the SVM
-  CvNormalBayesClassifier* NBC = new CvNormalBayesClassifier();
-  NBC->train(trainingX, trainingY, Mat(), Mat());
- 
+  Ptr<NormalBayesClassifier> NBC = NormalBayesClassifier::create();
+  NBC->train(trainingX, ROW_SAMPLE, trainingY);
   float err=0;
   int N = trainingX.rows;
   int size = 0;
-  int r = 0;
+  float r = 0;
   float low = 10000;
   float high = -10000;
-  for (int ratio = -100; ratio < 100; ratio+=1){
+
+  for (float ratio = -100; ratio < 0; ){
     int tempSize = 0;
     for (int i =0; i< trainingX.rows;i++){
-      CvMat sample = trainingX.row(i);
-      Mat prob = Mat::zeros(1,3,CV_32FC1);
-      CvMat probs = prob;
-
-      float response = NBC->predict(&sample,0,&probs);
-      if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
+      Mat sample = trainingX.row(i);
+      Mat probs;
+      Mat result;
+      
+      NBC->predictProb(sample,result,probs);
+  
+      float V = 0;
+      for (int c = 0; c < num_classes; c++){
+        V+=probs.at<float>(0,c); 
+      }
+      int res = (int) result.at<float>(0,0);
+      if (fabs(res - trainingY.at<float>(i,0))>1e-7){
         tempSize++;
-      } else if (log10(probs.data.fl[(int)response]) < ratio){
+      } else if (log10(probs.at<float>(0,res)/V)*100 < ratio){
         tempSize++;
       }
     }
@@ -382,25 +389,45 @@ CvNormalBayesClassifier* baseline_classfier_NBC(Mat& trainingX, Mat& trainingY, 
       size = tempSize;
       r = ratio;
     }
+    if(ratio < -2){
+      ratio +=1;
+    }else{
+      ratio += 0.001;
+    }
   }
 
-
+  //cout<<"si9ze=" <<size<<endl;
   for (int i =0; i< trainingX.rows;i++){
-    CvMat sample = trainingX.row(i);
-    Mat prob = Mat::zeros(1,3,CV_32FC1);
-    CvMat probs = prob;
+    Mat sample = trainingX.row(i);
+    Mat probs = Mat::zeros(num_classes,1,CV_32FC1);
+    Mat result;
 
-    float response = NBC->predict(&sample,0,&probs);
-    if (probs.data.fl[(int)response] < low ){
-      low =  probs.data.fl[(int)response]; 
+    int response; 
+    NBC->predictProb(sample,result,probs);
+    response = (int) result.at<float>(0,0);
+
+    //cout<<"instance "<<i<<" resp="<<result.at<float>(0,0)<<" r="<<r;
+    float V = 0;
+    for (int c = 0; c < num_classes; c++){
+      V+=probs.at<float>(0,c); 
     }
-    if (probs.data.fl[(int)response] >high ){
-      high =  probs.data.fl[(int)response]; 
+    /*
+    for (int c = 0; c < num_classes; c++){
+      cout<<" "<<(probs.at<float>(0,c)); 
     }
-    if (fabs(NBC->predict(&sample)- trainingY.at<float>(i,0))>1e-7){
+    cout<<endl;*/
+    float prob = log10(probs.at<float>(0,response)/V)*100;
+
+    if (prob < low ){
+      low =  prob; 
+    }
+    if (prob>high ){
+      high =  prob; 
+    }
+    if ((fabs(response)- trainingY.at<float>(i,0))>1e-7){
       err += 1;
       largeErrSet->push_back(i);
-    } else if (log10(probs.data.fl[(int)response]) < r){
+    } else if (prob < r){
       largeErrSet->push_back(i);
     }else{
       smallErrSet->push_back(i);
@@ -433,11 +460,12 @@ float run(int argc, char** argv, int first, int last){
 
   dsa->split(testingds, ds, first, last);
 
-  //cout<<trainingds->num_instances()<<"   "<<testingds->num_instances()<<endl;
   num_of_attributes = ds->num_attributes();
+  //cout<<trainingds->num_instances()<<"   "<<testingds->num_instances()<<endl;
   if (classIndex == -1){
     classIndex = num_of_attributes - 1;
   }
+  num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   if (min_sup<0){
     min_sup = ds->num_instances()* min_sup_ratio;
     if (min_sup<=1){
@@ -467,13 +495,14 @@ float run(int argc, char** argv, int first, int last){
   vector<int>* smallErrSet = new vector<int>();
 
 
-  CvNormalBayesClassifier * nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,ro);
+  Ptr<NormalBayesClassifier> nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,num_of_classes,ro);
+  
+  
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
 
   generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, largeErrSet);
 
-  num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
   char tempDPMFile[32];
   strcpy(tempDPMFile,tempDir);
   strcat(tempDPMFile,"/result");
@@ -492,20 +521,19 @@ float run(int argc, char** argv, int first, int last){
 
   //num_patterns = dpm(tempDataFile,tempDPMFile,real_num_class,min_sup,delta);
   num_patterns = gcgrowth(tempDataFile,tempDPMFile,min_sup);
-  cout<<"# of patterns = "<<num_patterns<<endl; 
 
   PatternSet* patternSet = new PatternSet();
-  strcat(tempDPMFile,".closed");
+  strcat(tempDPMFile,".key");
   patternSet->read(tempDPMFile);
 
   //patternSet->print();
 
-  cout<<"pattern number="<<num_patterns<<endl;
+  cout<<"pattern number="<<patternSet->get_size()<<endl;
+
+  patternSet->filter(newXs,num_of_attributes);
 
 
-  if(true){
-    return 0;
-  }
+  cout<<"pattern number="<<patternSet->get_size()<<endl;
 
 
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
@@ -519,12 +547,37 @@ float run(int argc, char** argv, int first, int last){
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
   classifier.train(patternSet,trainingX,trainingY,ins,base );
   int err =0;
+  cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
+      /*float errReduction=0.0;
+      for (int j = 0; j < trainingX.rows; j++){
+        Mat probs1;
+        Mat probs2;
+        Mat result1;
+        Mat result2;
+        
+        cf->predictProb(trainingX.row(j),result1,probs1);
+        baseClassifier->predictProb(trainingX.row(j),result2,probs2);
+
+        int res1 = (int) result1.at<float>(0,0);
+        int res2 = (int) result2.at<float>(0,0);
+        float norm1 = 0.0;
+        float norm2 = 0.0;
+        for (int c = 0; c < probs.cols;c++){
+          norm1+=probs1.at<float>(0,c);
+          norm2+=probs2.at<float>(0,c);
+        }
+        float err1 = fabs(1 - probs1.at<float>(0,(int)trainingY.at<float>(j,0))/norm1);
+        float err2 = fabs(1 - probs2.at<float>(0,(int)trainingY.at<float>(j,0))/norm2);
+        errReduction += fabs(err1-err2);
+      }
+      errReduction/= md->size();*/
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
     float response = classifier.predict(testingX.row(i),md);
-    if (response != testingY.at<float>(i,0)){
+    if (fabs(response- testingY.at<float>(i,0))>1e-7){
       err++;
     }
+    //cout<<response<<endl;
   }
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
   //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;

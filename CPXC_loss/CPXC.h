@@ -1,23 +1,28 @@
 #ifndef CPXC_CPXC_H
 #define CPXC_CPXC_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/ml/ml.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/ml.hpp>
+#include <opencv2/highgui.hpp>
 #include "CP.h"
+
+using namespace cv;
+using namespace cv::ml;
 
 class LocalClassifier{
 public:
   Pattern *pattern;
   float weight;
-  CvNormalBayesClassifier* NBC;
+  float AER;
+  Ptr<NormalBayesClassifier> NBC;
   float singleClass = -1;//if all samples are in the same class
 
   LocalClassifier(){
-    NBC = new CvNormalBayesClassifier();
+    NBC =NormalBayesClassifier::create();
   }
   float train(cv::Mat &samples, cv::Mat &labels);
   float predict(cv::Mat samples);
+  float predict(Mat sample, Mat& probs);
 };
 
 class CPXC{

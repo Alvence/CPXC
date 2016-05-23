@@ -355,6 +355,24 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
   patterns = newPs;
 }
 
+bool isFiltered(Pattern &p, vector<vector<int>*>* const xs, int num_attr){
+  if (count(p,xs)<=num_attr){
+    return true;
+  }
+  return false;
+}
+
+void PatternSet::filter(vector<vector<int>*>* const xs, int num_attr){
+  vector<Pattern>::iterator it = patterns.begin(); 
+  while(it!=patterns.end()){
+    if (isFiltered(*it,xs,num_attr)){
+      it = patterns.erase(it);
+    }else{
+      it++;
+    }
+  }
+}
+
 void PatternSet::read(char* file){
   ifstream in;
   in.open(file);
