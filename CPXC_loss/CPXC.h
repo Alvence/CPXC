@@ -1,6 +1,7 @@
 #ifndef CPXC_CPXC_H
 #define CPXC_CPXC_H
 
+#include <set>
 #include <opencv2/core.hpp>
 #include <opencv2/ml.hpp>
 #include <opencv2/highgui.hpp>
@@ -12,6 +13,8 @@ using namespace cv::ml;
 class LocalClassifier{
 public:
   Pattern *pattern;
+  std::set<int> classes;
+  int num_classes;
   float weight;
   float AER;
   Ptr<NormalBayesClassifier> NBC;
@@ -41,7 +44,7 @@ public:
     delete classifiers;
     classifiers = NULL;
   }
-  void train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier);
+  void train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier,int); 
   float predict(cv::Mat sample, vector<int>* matches);
   float predict(cv::Mat sample);
 };

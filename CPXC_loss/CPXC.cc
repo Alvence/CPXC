@@ -28,7 +28,9 @@ float LocalClassifier::predict(Mat sample, Mat& probs){
   if (sample.rows>1){
     return 0;
   }
+
   if (singleClass >= 0){
+    probs.at<float>(0,singleClass) = 1.0;
     return singleClass;
   }
   Mat result;
@@ -51,7 +53,7 @@ void CPXC::filter(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<st
   } 
 }
 */
-void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier){
+void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier, int num_of_classes){
   int num_ins = xs.rows;
   vector<int> flags(num_ins,0);
   classifiers->clear();
@@ -61,10 +63,12 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
       LocalClassifier* cf = new LocalClassifier();
       cf->weight = 0;
       cf->singleClass = 1;
+      cf->num_classes = num_of_classes;
       classifiers->push_back(cf);
       continue;
     }
     LocalClassifier* cf = new LocalClassifier();
+    cf->num_classes = num_of_classes;
     cf->weight = md->size();
     Mat trainingX = Mat::zeros(md->size(),xs.cols, CV_32FC1);
     Mat trainingY = Mat::zeros(md->size(),1,CV_32SC1);
@@ -77,63 +81,72 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
       //xs.row(index).copyTo(trainingX.row(j));
       //ys.row(index).copyTo(trainingY.row(j));
       flags[index] = 1;
+      cf->classes.insert((int)trainingY.at<float>(j,0));
     }
     ////for (int k=0;k < md->size();k++){
     ////  cout<< md->at(k)<<":"<<trainingY.at<float>(k,0)<<":"<<ys.at<float>(md->at(k),0)<<"  ";
     ////}cout<<endl;
 
     //check whether it is single class
-    bool flag = true;
-    float label = trainingY.at<float>(0,0);
-    for (int k = 1; k < trainingY.rows;k++){
-      if (fabs(trainingY.at<float>(k,0)-label)>1e-5){
-        flag = false;
-        break;
-      }
-    }
-    if (!flag){
+    if (cf->classes.size()>1){
       cf->pattern = &((patterns->get_patterns())[i]);
       cf->train(trainingX,trainingY);
       //cout<<"complete training for pattern" << i<<endl;
     }else{
-      cf->singleClass = label;
+      cf->singleClass = *(cf->classes.begin());
     }
     float errReduction = 0.0;
+//cout<<"classes num="<<cf->classes.size()<<endl;
     for (int j = 0; j < trainingX.rows; j++){
-      Mat probs1;
-      Mat probs2;
+      Mat probs1 = Mat::zeros(1,num_of_classes,CV_32FC1);
+      Mat probs2 = Mat::zeros(1,num_of_classes,CV_32FC1);
+//cout<<probs1.size()<<"   vs "<<probs2.size()<<endl;
       int res1 = (int)cf->predict(trainingX.row(j),probs1);
       int res2 = (int)baseClassifier->predict(trainingX.row(j),probs2);
       float norm1 = 0.0;
       float norm2 = 0.0;
-      
+     
+//cout<<probs1.size()<<"   vs "<<probs2.size()<<endl;
+//cout<<"res1="<<res1<<"     res2="<<res2<<endl;
+
+      float prob1 = 0, prob2 = 0;
       for (int c = 0; c < probs1.cols;c++){
         norm1+=probs1.at<float>(0,c);
+        if (prob1 < probs1.at<float>(0,c)){
+          prob1 = probs1.at<float>(0,c);
+        }
+      }
+      for (int c = 0; c < probs2.cols;c++){
         norm2+=probs2.at<float>(0,c);
+        if (prob2 < probs2.at<float>(0,c)){
+          prob2 = probs2.at<float>(0,c);
+        }
       }
 
       float err1 = 0.0, err2 = 0.0;
 
       int label = (int)trainingY.at<float>(j,0);
       if(res1 == label){
-        err1 = 1 -  probs1.at<float>(0,label)/norm1;
+        err1 = 1 -  prob1/norm1;
       }else{
         err1 = 1.0;
       }
       if(res2 == label){
-        err2 = 1 -  probs2.at<float>(0,label)/norm2;
+        err2 = 1 -  prob2/norm2;
       }else{
         err2 = 1.0;
       }
 
-      cout<<err1<<"   vs "<<err2<<endl;
+  //    cout<<probs1.size()<<err1<<"   vs "<<probs2.size()<<err2<<endl;
 
       errReduction += fabs(err1-err2);
     }
     errReduction/= md->size();
 
     cout<<"for pattern "<<i<<" aer="<<errReduction<<endl;
-    
+  
+
+    cf->weight = errReduction;
     classifiers->push_back(cf);
   }
   

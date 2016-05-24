@@ -494,9 +494,7 @@ float run(int argc, char** argv, int first, int last){
   vector<int>* largeErrSet = new vector<int>();
   vector<int>* smallErrSet = new vector<int>();
 
-
   Ptr<NormalBayesClassifier> nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,num_of_classes,ro);
-  
   
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
@@ -545,7 +543,7 @@ float run(int argc, char** argv, int first, int last){
   LocalClassifier* base = new LocalClassifier();
   base->NBC = nbc;
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
-  classifier.train(patternSet,trainingX,trainingY,ins,base );
+  classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
   int err =0;
   cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
       /*float errReduction=0.0;
