@@ -291,6 +291,19 @@ float BinDivider::get_min(int attr_index){
   return mins->at(attr_index);
 }
 
+float BinDivider::get_mean_of_bin(int attr_index,int bin_index){
+  vector<float>* bin = bin_list->at(attr_index);
+  if (bin->size() == 0) return -1;
+  if (bin_index == 0) return bin->at(0);
+  if (bin_index == bin->size()) return bin->at(bin_index-1);
+
+  float mean = (bin->at(0)+bin->at(bin->size()-1))/2;
+
+  float n1 = bin->at(bin_index);
+  float n2 = bin->at(bin_index - 1);
+  return (n1 + n2)/(2*mean);
+}
+
 int BinDivider::get_bin_value(float val, int attr_index){
   int value = 0;
   vector<float> * bin = bin_list->at(attr_index);

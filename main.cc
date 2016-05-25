@@ -279,11 +279,14 @@ int main(int argc, char** argv){
 #endif
   num_patterns = dpm(tempDataFile,tempDPMFile,num_of_classes,min_sup,delta);
   //num_patterns = gcgrowth(tempDataFile, tempDPMFile, min_sup);
+  cout<<"pattern before "<<num_patterns<<endl;
+  
   //read patterns
   PatternSet* patternSet = new PatternSet();
   strcat(tempDPMFile,".closed");
-  patternSet->read(tempDPMFile);
-patternSet->print();
+  patternSet->read(tempDPMFile, divider);
+
+  patternSet->print();
 
   patternSet->prune_AMI(binning_xs, prune_threshold, prune_sigma);
   //patternSet->print();
@@ -291,9 +294,10 @@ patternSet->print();
   if(true){
     return 0;
   }
-
   //translate input
   translate_input(patternSet, binning_xs, xs);
+
+
 
   if (testProvided){
     translate_input(patternSet, test_binning_xs,test_xs);

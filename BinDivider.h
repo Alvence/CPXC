@@ -27,6 +27,7 @@ public:
     float get_max(int attr_index);
     float get_min(int attr_index);
     int get_bin_value(float val, int attr_index);
+    float get_mean_of_bin(int attr_index,int bin_index);
 };
 
 
