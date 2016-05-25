@@ -19,7 +19,6 @@
 #include <arff_data.h>
 #include <arff_value.h>
 
-#include <DPM.h>
 #include <gcgrowth.h>
 
 #include "BinDivider.h"
@@ -441,7 +440,7 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
     }
   }
   //cout<<"trainning err = "<<err/trainingX.rows<<endl;
-  cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows <<"high = "<<high<<"  low ="<<low<<endl;
+  //cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows <<"high = "<<high<<"  low ="<<low<<endl;
   return NBC;
 }
 
@@ -532,12 +531,12 @@ float run(int argc, char** argv, int first, int last){
 
   //patternSet->print();
 
-  cout<<"pattern number="<<patternSet->get_size()<<endl;
+  //cout<<"pattern before="<<patternSet->get_size()<<"   ";
 
-  patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
+  //patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
 
 
-  cout<<"pattern number="<<patternSet->get_size()<<endl;
+  //cout<<"pattern after="<<patternSet->get_size()<<"   ";
 
 
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
@@ -549,39 +548,17 @@ float run(int argc, char** argv, int first, int last){
   LocalClassifier* base = new LocalClassifier();
   base->NBC = nbc;
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
-  classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
+  //classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
   int err =0;
-  cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
-      /*float errReduction=0.0;
-      for (int j = 0; j < trainingX.rows; j++){
-        Mat probs1;
-        Mat probs2;
-        Mat result1;
-        Mat result2;
-        
-        cf->predictProb(trainingX.row(j),result1,probs1);
-        baseClassifier->predictProb(trainingX.row(j),result2,probs2);
-
-        int res1 = (int) result1.at<float>(0,0);
-        int res2 = (int) result2.at<float>(0,0);
-        float norm1 = 0.0;
-        float norm2 = 0.0;
-        for (int c = 0; c < probs.cols;c++){
-          norm1+=probs1.at<float>(0,c);
-          norm2+=probs2.at<float>(0,c);
-        }
-        float err1 = fabs(1 - probs1.at<float>(0,(int)trainingY.at<float>(j,0))/norm1);
-        float err2 = fabs(1 - probs2.at<float>(0,(int)trainingY.at<float>(j,0))/norm2);
-        errReduction += fabs(err1-err2);
-      }
-      errReduction/= md->size();*/
+  //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   vector<int> TP(num_of_classes,0);
   vector<int> FP(num_of_classes,0);
   vector<int> TN(num_of_classes,0);
   vector<int> FN(num_of_classes,0);
   for (int i = 0; i < testingds->num_instances();i++){
-    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    int response = (int)classifier.predict(testingX.row(i),md);
+    //vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    //int response = (int)classifier.predict(testingX.row(i),md);
+    int response = (int)base->predict(testingX.row(i));
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){
       err++;
@@ -612,7 +589,7 @@ float run(int argc, char** argv, int first, int last){
     AUC[c] = TPR[c]*FPR[c]/2.0+ ((TPR[c]+1)*(1-FPR[c]))/2.0;
     AAUC += AUC[c];
   }
-  cout<<"AUC="<< AAUC/3<<"  ";
+  //cout<<"AUC="<< AAUC/3<<"  ";
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
   //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;
   //free(patternSet);
@@ -660,7 +637,8 @@ int main(int argc, char** argv){
     if (n!=cv_fold)
       continue;
     float err = run(argc,argv, first, last);
-    cout<<"fold "<<n<<"  error="<<err<<endl;
+    //cout<<"fold "<<n<<"  error="<<err<<endl;
+    cout<<err<<endl;
     error+=err;
   }
   //cout<<"avg erddror" <<error/fold<<endl;

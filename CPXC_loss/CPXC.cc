@@ -153,7 +153,7 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
     }
     classifiers->push_back(cf);
   }
-  cout<<"ccc="<<ccc<<endl;
+  //cout<<"ccc="<<ccc<<endl;
   Mat dtrainingX;
   Mat dtrainingY;
   int j=0;
