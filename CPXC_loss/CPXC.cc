@@ -56,6 +56,7 @@ void CPXC::filter(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<st
 void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier, int num_of_classes){
   int num_ins = xs.rows;
   vector<int> flags(num_ins,0);
+  int ccc = 0;
   classifiers->clear();
   for (int i = 0; i < mds->size(); i++){
     vector<int>* md = mds->at(i);
@@ -69,7 +70,6 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
     }
     LocalClassifier* cf = new LocalClassifier();
     cf->num_classes = num_of_classes;
-    cf->weight = md->size();
     Mat trainingX = Mat::zeros(md->size(),xs.cols, CV_32FC1);
     Mat trainingY = Mat::zeros(md->size(),1,CV_32SC1);
     for (int j = 0; j < md->size(); j++){
@@ -137,19 +137,23 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
         err2 = 1.0;
       }
 
-  //    cout<<probs1.size()<<err1<<"   vs "<<probs2.size()<<err2<<endl;
+//cout<<err1<<"   vs "<<err2<<endl;
 
       errReduction += fabs(err1-err2);
     }
     errReduction/= md->size();
 
-    cout<<"for pattern "<<i<<" aer="<<errReduction<<endl;
+//cout<<"for pattern "<<i<<" aer="<<errReduction<<endl;
   
-
-    cf->weight = errReduction;
+    if (errReduction < 0.1){
+      ccc++;
+      cf->weight = 0;
+    } else{
+      cf->weight = errReduction;
+    }
     classifiers->push_back(cf);
   }
-  
+  cout<<"ccc="<<ccc<<endl;
   Mat dtrainingX;
   Mat dtrainingY;
   int j=0;
@@ -197,9 +201,16 @@ float CPXC::predict(Mat sample, vector<int>* matches){
     return defaultClassifier->predict(sample);
   }
   vector<float> votes(num_of_classes,0);
+  bool flag = true;
   for (int i =0; i < matches->size(); i++){
     float response = classifiers->at(matches->at(i))->predict(sample);
     votes[(int)response] += classifiers->at(matches->at(i))->weight;
+    if (fabs(classifiers->at(matches->at(i))->weight)>1e-6){
+      flag =false;
+    }
+  }
+  if (flag){
+    return defaultClassifier->predict(sample);
   }
   int label;
   float maxvote=-1;

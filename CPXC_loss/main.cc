@@ -276,9 +276,14 @@ vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int c
   free(ins);
   return res;
 }
-void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t, vector<int> * largeErrSet){
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs,  vector<int> * &t, vector<vector< vector<int> *> *>* & labelledXs, vector<int> * largeErrSet){
   free_p(Xs);
   free_p(t);
+  int num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
+  labelledXs = new vector<vector<vector<int> *> *>(num_of_classes);
+  for (int c=0;c<num_of_classes;c++){
+    labelledXs->at(c) = new vector<vector<int>* >();
+  }
   Xs = new vector<vector<int>*>();
   t = new vector<int>();
   ofstream out;
@@ -303,16 +308,18 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
         ins->push_back(val);
       }
     }
+    labelledXs->at(target)->push_back(ins);
     Xs->push_back(ins);
     out << endl;
   }
   out.close();
 }
 
-void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs, vector<int> * &t){ 
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs,vector<int> * &t){ 
   free_p(Xs);
   free_p(t);
   Xs = new vector<vector<int>*>();
+  
   t = new vector<int>();
   ofstream out;
   out.open(file, ios::out);
@@ -459,22 +466,12 @@ float run(int argc, char** argv, int first, int last){
   ArffData *testingds = new ArffData();
 
   dsa->split(testingds, ds, first, last);
-
   num_of_attributes = ds->num_attributes();
   //cout<<trainingds->num_instances()<<"   "<<testingds->num_instances()<<endl;
   if (classIndex == -1){
     classIndex = num_of_attributes - 1;
   }
   num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
-  if (min_sup<0){
-    min_sup = ds->num_instances()* min_sup_ratio;
-    if (min_sup<=1){
-      min_sup = 1;
-    }
-#ifdef CPXC_DEBUG
-    cout<<"set min_sup="<<min_sup<<endl;
-#endif
-  }
 
   Mat trainingX; 
   Mat trainingY;
@@ -496,11 +493,20 @@ float run(int argc, char** argv, int first, int last){
 
   Ptr<NormalBayesClassifier> nbc= baseline_classfier_NBC(trainingX,trainingY,largeErrSet,smallErrSet,num_of_classes,ro);
   
+  if (min_sup<0){
+    min_sup = largeErrSet->size()* min_sup_ratio;
+    if (min_sup<=1){
+      min_sup = 1;
+    }
+#ifdef CPXC_DEBUG
+    cout<<"set min_sup="<<min_sup<<endl;
+#endif
+  }
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
+  vector< vector<vector<int> *> *>* labelledXs;
 
-  generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, largeErrSet);
-
+  generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, labelledXs,largeErrSet);
   char tempDPMFile[32];
   strcpy(tempDPMFile,tempDir);
   strcat(tempDPMFile,"/result");
@@ -528,7 +534,7 @@ float run(int argc, char** argv, int first, int last){
 
   cout<<"pattern number="<<patternSet->get_size()<<endl;
 
-  patternSet->filter(newXs,num_of_attributes);
+  patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
 
 
   cout<<"pattern number="<<patternSet->get_size()<<endl;
@@ -569,14 +575,44 @@ float run(int argc, char** argv, int first, int last){
         errReduction += fabs(err1-err2);
       }
       errReduction/= md->size();*/
+  vector<int> TP(num_of_classes,0);
+  vector<int> FP(num_of_classes,0);
+  vector<int> TN(num_of_classes,0);
+  vector<int> FN(num_of_classes,0);
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    float response = classifier.predict(testingX.row(i),md);
-    if (fabs(response- testingY.at<float>(i,0))>1e-7){
+    int response = (int)classifier.predict(testingX.row(i),md);
+    int trueLabel =(int) testingY.at<float>(i,0);
+    if (response!=trueLabel){
       err++;
+    }
+    for (int c=0;c<num_of_classes;c++){
+      if(c==response && c==trueLabel){
+        TP[c]++;
+      }
+      if(c==response && c!=trueLabel){
+        FP[c]++;
+      }
+      if(c!=response && c==trueLabel){
+        FN[c]++;
+      }
+      if(c!=response && c!=trueLabel){
+        TN[c]++;
+      }
     }
     //cout<<response<<endl;
   }
+  vector<float> TPR(num_of_classes,0);
+  vector<float> FPR(num_of_classes,0);
+  vector<float> AUC(num_of_classes,0);
+  float AAUC=0.0;
+  for(int c = 0;c<num_of_classes;c++){
+    TPR[c] = TP[c]==0?0:TP[c]*1.0/(TP[c]*1.0+FN[c]);
+    FPR[c] = FP[c]==0?0:FP[c]*1.0/(FP[c]*1.0+TN[c]);
+    AUC[c] = TPR[c]*FPR[c]/2.0+ ((TPR[c]+1)*(1-FPR[c]))/2.0;
+    AAUC += AUC[c];
+  }
+  cout<<"AUC="<< AAUC/3<<"  ";
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
   //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;
   //free(patternSet);
@@ -607,7 +643,7 @@ int main(int argc, char** argv){
   ArffParser parser(datafile);
   //parse the data
   ArffData *dsa = parser.parse();
-  int fold = 10;
+  int fold = 7;
   int N = dsa->num_instances();
   //int N = 59;
   float stepsize = N*1.0/fold;
@@ -621,9 +657,8 @@ int main(int argc, char** argv){
     if (end > N){
       end = N;
     }
-    if (n!=cv_fold){
+    if (n!=cv_fold)
       continue;
-    }
     float err = run(argc,argv, first, last);
     cout<<"fold "<<n<<"  error="<<err<<endl;
     error+=err;
