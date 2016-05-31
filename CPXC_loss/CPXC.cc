@@ -1,13 +1,12 @@
 #include "CPXC.h"
 
 #include <cmath>
-
+#include <fstream>
 #include "Utils.h"
 using namespace cv;
 using namespace std;
 
 float LocalClassifier::train(Mat & trainingX, Mat & trainingY){
-
   NBC->train(trainingX,ROW_SAMPLE, trainingY);
 }
 
@@ -36,6 +35,22 @@ float LocalClassifier::predict(Mat sample, Mat& probs){
   Mat result;
   NBC->predictProb(sample,result,probs);
   return result.at<float>(0,0);
+}
+
+void CPXC::save(char* filename){
+  fstream fs;
+  fs.open(filename,fstream::in);
+
+  for (int i=0; i < classifiers->size();i++){
+    if (fabs(classifiers->at(i)->weight)<1e-6){
+      continue;
+    }
+    fs<<"pattern:  ";
+    classifiers->at(i)->pattern->print(fs);
+    fs<<"weight = "<< classifiers->at(i)->weight<<endl<<endl;
+  }
+
+  fs.close();
 }
 /*
 void CPXC::filter(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds){
@@ -149,6 +164,7 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
       ccc++;
       cf->weight = 0;
     } else{
+      cf->pattern = &((patterns->get_patterns())[i]);
       cf->weight = errReduction;
     }
     classifiers->push_back(cf);

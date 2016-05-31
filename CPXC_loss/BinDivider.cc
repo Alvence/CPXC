@@ -8,13 +8,32 @@
 #include <cfloat>
 #include <algorithm>
 #include <set>
-
+#include <fstream>
 #include <arff_value.h>
 
 #include "Utils.h"
 
 
 using namespace std;
+
+float BinDivider::save(char * filename){
+  fstream fs;
+  fs.open(filename,fstream::out);
+
+  for (int i =0; i < flags->size();i++){
+    if (flags->at(i)==false){
+      continue;
+    }
+    vector<float>* bin = bin_list->at(i);
+    fs<<"attribute "<<i<<"("<< bin->size()<<" cutting points): ";
+    for (int j = 0; j < bin->size(); j++){
+      fs<<" ,"<<bin->at(j);
+    }
+    fs<<endl;
+  }
+
+  fs.close();
+}
 
 BinDivider::~BinDivider(){
   if(widths!=NULL){
@@ -130,7 +149,7 @@ void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, i
   for (int i = 0; i < cutting_points.size();i++){
     float conditional_entropy = entropy(set, labels, cutting_points[i], num_classes);
     float gain = marginal_entropy - conditional_entropy;
-    ////cout<<(gain-max_gain>1e-7)<<" "<<"cp candidate="<<cutting_points[i]<<"  con-ent="<<conditional_entropy<<"  gain="<<gain<<"  max_gain="<<max_gain<<endl;
+//cout<<(gain-max_gain>1e-7)<<" "<<"cp candidate="<<cutting_points[i]<<"  con-ent="<<conditional_entropy<<"  gain="<<gain<<"  max_gain="<<max_gain<<endl;
     if (gain > max_gain){
       cutting_point = cutting_points[i];
       max_gain = gain;
@@ -148,14 +167,14 @@ void discretize(vector<float> set, vector<int> labels,vector<float>* dividers, i
     //for more about this threshold, see Fayyad&Irani,1993
     float delta = log2(pow(3,k)-2) - (k*marginal_entropy- k1*entropy(sub1,labels1,num_classes)-k2* entropy(sub2, labels2, num_classes));
     float threshold = (log2(N-1) + delta)*1.0/N;
-    ////cout<<"cutting point="<<cutting_point<<" k1="<<k1<<"  k2="<<k2<<"  delta="<<delta<<" thre="<<threshold<<endl;
+//cout<<"cutting point="<<cutting_point<<" k1="<<k1<<"  k2="<<k2<<"  delta="<<delta<<" thre="<<threshold<<"  max gain="<<max_gain<<endl;
     if (max_gain < threshold){
       return;
     }
   }else if (RANDOM == sc){
     
   }
-  
+ 
   if (k1 > 1){
     discretize(sub1,labels1,dividers, num_classes, sc);
   }
@@ -200,6 +219,7 @@ void BinDivider::init_minimal_entropy(ArffData* ds, int label_index, StoppingCre
       }
     }
     discretize(set, labels, dividers, ds->get_nominal(ds->get_attr(label_index)->name()).size(), sc);
+    sort(dividers->begin(),dividers->end());
     bin_list->at(j) = dividers;
     ///cout<<"for att "<<j<<endl;
     ///print_vector(dividers);

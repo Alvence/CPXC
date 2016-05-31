@@ -10,6 +10,7 @@
 #include <queue>
 
 #include "Utils.h"
+#include "BinDivider.h"
 
 using namespace std;
 template <typename T>
@@ -46,10 +47,32 @@ bool Pattern::match(vector<int> instance){
   return false;
 }
 
-void Pattern::print(){
-  cout<<num_item;
+
+void Pattern::print(fstream &fs){
+  fs<<num_item<<" items: ";
   for (int i = 0; i != items.size();i++){
-    cout<<" "<<items[i];
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
+    fs<<"  ("<<attr_index<<","<<value<<")";
+  }
+
+  for (int i = 0; i < union_patterns.size();i++){
+    fs<<"  and  ";
+    union_patterns[i].print(fs);
+  }
+  
+  if (union_patterns.size()==0)
+    fs<<endl;
+  
+}
+
+void Pattern::print(){
+  for (int i = 0; i != items.size();i++){
+    int item = items[i];
+    int value = item & ((1<<ATTR_SHIFT)-1);
+    int attr_index = item >> ATTR_SHIFT;
+    cout<<"  ("<<attr_index<<","<<value<<")";
   }
 
   for (int i = 0; i < union_patterns.size();i++){
@@ -432,4 +455,13 @@ void PatternSet::print(){
   for (int i=0; i!=patterns.size(); i++){
     patterns[i].print();
   }
+}
+void PatternSet::save(char* filename){
+  fstream fs;
+  fs.open(filename,fstream::out);
+  fs<<patterns.size()<<" patterns"<<endl;
+  for (int i=0; i!=patterns.size(); i++){
+    patterns[i].print(fs);
+  }
+  fs.close();
 }

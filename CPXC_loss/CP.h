@@ -4,6 +4,7 @@
 #define JACCARD_SIMILARITY_THRESHOLD 0.9
 
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -18,6 +19,7 @@ public:
   bool match(std::vector<int> instance);
   bool match(std::vector<int> * instance);
   void print();
+  void print(std::fstream& fs);
   void merge(Pattern p);
 
   inline int get_num_item(){return num_item;}
@@ -37,6 +39,7 @@ public:
   vector<int> translate_input(vector<int>);
   inline int get_size(){return patterns.size();}
   inline vector<Pattern> get_patterns(){return patterns;}
+  void save(char * filename);
 };
 
 #endif

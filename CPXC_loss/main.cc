@@ -39,7 +39,7 @@ char testfile[256];
 int classIndex=-1;
 int min_sup = -1;
 float min_sup_ratio = 0.02; //default min sup = 2%
-int delta = 6;
+int delta = 20;
 float prune_threshold = 0.3;
 StoppingCreteria sc = NEVER;
 bool equalwidth = false;
@@ -486,7 +486,9 @@ float run(int argc, char** argv, int first, int last){
   }else{
     divider->init_minimal_entropy(ds, classIndex, sc);
   }
-  
+  divider->save("temp/discretization_results.txt");
+ 
+  //if(1) return 0;
   vector<int>* largeErrSet = new vector<int>();
   vector<int>* smallErrSet = new vector<int>();
 
@@ -529,13 +531,15 @@ float run(int argc, char** argv, int first, int last){
   strcat(tempDPMFile,".key");
   patternSet->read(tempDPMFile);
 
+patternSet->save("temp/pattern_results.txt");
   //patternSet->print();
 
   //cout<<"pattern before="<<patternSet->get_size()<<"   ";
 
-  //patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
+patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
 
 
+patternSet->save("temp/contrast_pattern_results.txt");
   //cout<<"pattern after="<<patternSet->get_size()<<"   ";
 
 
@@ -548,7 +552,8 @@ float run(int argc, char** argv, int first, int last){
   LocalClassifier* base = new LocalClassifier();
   base->NBC = nbc;
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
-  //classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
+  classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
+  //classifier.save("temp/model.txt");
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   vector<int> TP(num_of_classes,0);
@@ -556,9 +561,9 @@ float run(int argc, char** argv, int first, int last){
   vector<int> TN(num_of_classes,0);
   vector<int> FN(num_of_classes,0);
   for (int i = 0; i < testingds->num_instances();i++){
-    //vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    //int response = (int)classifier.predict(testingX.row(i),md);
-    int response = (int)base->predict(testingX.row(i));
+    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    int response = (int)classifier.predict(testingX.row(i),md);
+    //int response = (int)base->predict(testingX.row(i));
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){
       err++;
@@ -640,6 +645,7 @@ int main(int argc, char** argv){
     //cout<<"fold "<<n<<"  error="<<err<<endl;
     cout<<err<<endl;
     error+=err;
+    cout<<"first="<<first<<"  end="<<end<<endl;
   }
   //cout<<"avg erddror" <<error/fold<<endl;
 }

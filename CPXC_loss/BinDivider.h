@@ -26,6 +26,7 @@ public:
     float get_max(int attr_index);
     float get_min(int attr_index);
     int get_bin_value(float val, int attr_index);
+    float save(char* filename);
 };
 
 
