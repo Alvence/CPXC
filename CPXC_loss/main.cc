@@ -41,7 +41,7 @@ int min_sup = -1;
 float min_sup_ratio = 0.02; //default min sup = 2%
 int delta = 20;
 float prune_threshold = 0.3;
-StoppingCreteria sc = NEVER;
+StoppingCreteria sc = THRESHOLD;
 bool equalwidth = false;
 bool testProvided = false;
 ClassifierAlg alg = ALG_NBC;
@@ -556,10 +556,6 @@ patternSet->save("temp/contrast_pattern_results.txt");
   //classifier.save("temp/model.txt");
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
-  vector<int> TP(num_of_classes,0);
-  vector<int> FP(num_of_classes,0);
-  vector<int> TN(num_of_classes,0);
-  vector<int> FN(num_of_classes,0);
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
     int response = (int)classifier.predict(testingX.row(i),md);
@@ -568,31 +564,7 @@ patternSet->save("temp/contrast_pattern_results.txt");
     if (response!=trueLabel){
       err++;
     }
-    for (int c=0;c<num_of_classes;c++){
-      if(c==response && c==trueLabel){
-        TP[c]++;
-      }
-      if(c==response && c!=trueLabel){
-        FP[c]++;
-      }
-      if(c!=response && c==trueLabel){
-        FN[c]++;
-      }
-      if(c!=response && c!=trueLabel){
-        TN[c]++;
-      }
-    }
     //cout<<response<<endl;
-  }
-  vector<float> TPR(num_of_classes,0);
-  vector<float> FPR(num_of_classes,0);
-  vector<float> AUC(num_of_classes,0);
-  float AAUC=0.0;
-  for(int c = 0;c<num_of_classes;c++){
-    TPR[c] = TP[c]==0?0:TP[c]*1.0/(TP[c]*1.0+FN[c]);
-    FPR[c] = FP[c]==0?0:FP[c]*1.0/(FP[c]*1.0+TN[c]);
-    AUC[c] = TPR[c]*FPR[c]/2.0+ ((TPR[c]+1)*(1-FPR[c]))/2.0;
-    AAUC += AUC[c];
   }
   //cout<<"AUC="<< AAUC/3<<"  ";
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;

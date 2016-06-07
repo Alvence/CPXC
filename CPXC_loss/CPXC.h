@@ -45,6 +45,7 @@ public:
     classifiers = NULL;
   }
   void train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier,int); 
+  float predict(cv::Mat sample, vector<int>* matches, cv::Mat& probs);
   float predict(cv::Mat sample, vector<int>* matches);
   float predict(cv::Mat sample);
   void save(char* filename);

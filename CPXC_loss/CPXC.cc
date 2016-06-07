@@ -82,7 +82,7 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
       cf->num_classes = num_of_classes;
       classifiers->push_back(cf);
       continue;
-    }
+    } 
     LocalClassifier* cf = new LocalClassifier();
     cf->num_classes = num_of_classes;
     Mat trainingX = Mat::zeros(md->size(),xs.cols, CV_32FC1);
@@ -235,6 +235,38 @@ float CPXC::predict(Mat sample, vector<int>* matches){
       label = i;
       maxvote = votes[i];
     }
+  }
+  return label;
+}
+float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
+  if (matches->size() == 0){
+    return defaultClassifier->predict(sample);
+  }
+  probs = Mat::zeros(num_of_classes,1,CV_32FC1);
+  vector<float> votes(num_of_classes,0);
+  bool flag = true;
+  for (int i =0; i < matches->size(); i++){
+    float response = classifiers->at(matches->at(i))->predict(sample);
+    votes[(int)response] += classifiers->at(matches->at(i))->weight;
+    if (fabs(classifiers->at(matches->at(i))->weight)>1e-6){
+      flag =false;
+    }
+  }
+  if (flag){
+    return defaultClassifier->predict(sample);
+  }
+  int label;
+  float maxvote = -1;
+  float totalVote = 0;
+  for (int i = 0; i < num_of_classes;i++){
+    totalVote+= votes[i];
+  }
+  for (int i = 0; i < num_of_classes;i++){
+    if (votes[i]>maxvote){
+      label = i;
+      maxvote = votes[i];
+    }
+    probs.at<float>(i,0) = votes[i]/totalVote;
   }
   return label;
 }
