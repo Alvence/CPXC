@@ -412,16 +412,16 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
     NBC->predictProb(sample,result,probs);
     response = (int) result.at<float>(0,0);
 
-    //cout<<"instance "<<i<<" resp="<<result.at<float>(0,0)<<" r="<<r;
+   cout<<"instance "<<i<<" resp="<<result.at<float>(0,0)<<" r="<<r;
     float V = 0;
     for (int c = 0; c < num_classes; c++){
       V+=probs.at<float>(0,c); 
     }
-    /*
+    
     for (int c = 0; c < num_classes; c++){
-      cout<<" "<<(probs.at<float>(0,c)); 
+      cout<<" "<<(probs.at<float>(0,c))/V; 
     }
-    cout<<endl;*/
+    cout<<endl;
     float prob = log10(probs.at<float>(0,response)/V)*100;
 
     if (prob < low ){
@@ -556,8 +556,12 @@ patternSet->save("temp/contrast_pattern_results.txt");
   //classifier.save("temp/model.txt");
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
+  int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    if (md->size()==0){
+      cout<<counter++<<endl;
+    }
     int response = (int)classifier.predict(testingX.row(i),md);
     //int response = (int)base->predict(testingX.row(i));
     int trueLabel =(int) testingY.at<float>(i,0);

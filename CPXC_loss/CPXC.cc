@@ -154,11 +154,13 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
 
 //cout<<err1<<"   vs "<<err2<<endl;
 
-      errReduction += fabs(err1-err2);
+    errReduction += fabs(err1-err2);
+    //  errReduction += err1-err2;
+cout<<"for data "<<j<<" err1="<<err1<<"  err2="<<err2<<"   err1-err2="<<err1-err2<<endl;
     }
     errReduction/= md->size();
 
-//cout<<"for pattern "<<i<<" aer="<<errReduction<<endl;
+cout<<"for pattern "<<i<<"  aer="<<errReduction<<endl;
   
     if (errReduction < 0.1){
       ccc++;
