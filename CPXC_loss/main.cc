@@ -266,8 +266,30 @@ vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int c
     }
   }
 
+  /*
   for (int i = 0; i < ps->get_patterns().size();i++){
     if (ps->get_patterns().at(i).match(ins)){
+      res->push_back(i);
+    }
+  }*/
+
+
+  //fussy match
+  for (int i = 0; i < ps->get_patterns().size();i++){
+    vector<int> MGi = ps->MGSet[i];
+    //cout<<i<<"  "<<MGi.size()<<endl;
+    if (ps->get_patterns().at(i).match(ins)){
+      res->push_back(i);
+      continue;
+    }
+    if(MGi.size()==0) continue;
+    int count = 0;
+    for (int j = 0; j < MGi.size();j++){
+      if (ps->get_patterns().at(MGi[j]).match(ins)){
+        count++;
+      }
+    }
+    if ((count*1.0/(MGi.size()))>=0.5){
       res->push_back(i);
     }
   }
@@ -412,16 +434,16 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
     NBC->predictProb(sample,result,probs);
     response = (int) result.at<float>(0,0);
 
-   cout<<"instance "<<i<<" resp="<<result.at<float>(0,0)<<" r="<<r;
+    //cout<<"instance "<<i<<" resp="<<result.at<float>(0,0)<<" r="<<r;
     float V = 0;
     for (int c = 0; c < num_classes; c++){
       V+=probs.at<float>(0,c); 
     }
-    
+    /*
     for (int c = 0; c < num_classes; c++){
       cout<<" "<<(probs.at<float>(0,c))/V; 
     }
-    cout<<endl;
+    cout<<endl;*/
     float prob = log10(probs.at<float>(0,response)/V)*100;
 
     if (prob < low ){
@@ -538,7 +560,7 @@ patternSet->save("temp/pattern_results.txt");
 
 patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
 
-
+patternSet->MG();
 patternSet->save("temp/contrast_pattern_results.txt");
   //cout<<"pattern after="<<patternSet->get_size()<<"   ";
 

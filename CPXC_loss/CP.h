@@ -22,6 +22,7 @@ public:
   void print(std::fstream& fs);
   void merge(Pattern p);
 
+  inline std::vector<int> get_items(){ return items;}
   inline int get_num_item(){return num_item;}
 };
 
@@ -30,6 +31,8 @@ private:
   std::vector<Pattern> patterns;
   int size;
 public:
+  std::vector<int> MGs;
+  std::vector<std::vector<int> > MGSet;
   void print();
   void read(char* file);
   void prune_AMI(vector<vector<int>*>* xs, float threshold);
@@ -40,6 +43,8 @@ public:
   inline int get_size(){return patterns.size();}
   inline vector<Pattern> get_patterns(){return patterns;}
   void save(char * filename);
+
+  void MG();
 };
 
 #endif

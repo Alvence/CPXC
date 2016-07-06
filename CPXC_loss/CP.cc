@@ -21,6 +21,10 @@ bool isSubset(std::vector<T> A, std::vector<T> B)
   return std::includes(A.begin(), A.end(), B.begin(), B.end());
 }
 
+bool isSubset(Pattern A, Pattern B){
+  return isSubset(A.get_items(),B.get_items());
+}
+
 Pattern::Pattern(int n, vector<int> is){
   this->num_item = n;
   this->items = is;
@@ -61,7 +65,7 @@ void Pattern::print(fstream &fs){
     fs<<"  and  ";
     union_patterns[i].print(fs);
   }
-  
+
   if (union_patterns.size()==0)
     fs<<endl;
   
@@ -416,10 +420,55 @@ void PatternSet::filter(vector<vector<int>*>* const xs, vector< vector<vector<in
   }
 }
 
+void PatternSet::MG(){
+  MGs.clear();
+  MGSet.clear();
+  int is_first_pattern = 1;
+  for (int index = 0; index<patterns.size();index++){
+    Pattern newP = patterns[index];
+    
+    vector<int> newV(0);
+    MGSet.push_back(newV);
+
+    if(is_first_pattern){
+      MGs.push_back(index);
+      is_first_pattern = 0;
+    }else{
+      int first_MG = -1;
+      for (int i = 0; i < MGs.size();i++){
+        if (isSubset(newP, patterns[MGs[i]])){
+          MGSet[index].push_back(MGs[i]);
+          if (first_MG<0){
+            first_MG = i;
+          }
+        }
+      }
+
+      //it is a Minimal pattern
+      if(first_MG<0){
+        MGs.push_back(index);
+      }
+    }
+  }
+  /*
+  for (int i = 0; i < MGs.size();i++){
+    cout<<"MG "<<MGs[i]<<"  :";
+  }
+  for(int i=0; i < patterns.size();i++){
+    cout<<i<<": ";
+    for(int j = 0; j < MGSet[i].size();j++){
+      cout<<MGSet[i][j]<<"  ";
+    }
+    cout<<endl;
+  }*/
+}
+
 void PatternSet::read(char* file){
   ifstream in;
   in.open(file);
   string line;
+
+  int index = 0;
   //cout<<file<<endl;
   while (getline(in, line)){
     istringstream iss(line);
@@ -434,9 +483,19 @@ void PatternSet::read(char* file){
     }
     Pattern newP(num_item, items);
     this->patterns.push_back(newP);
+    index++;
   }
   this->size = patterns.size();
   in.close();
+
+/*
+  for (int i = 0; i < MGs.size();i++){
+    cout<<"MG "<<MGs[i]<<"  :";
+    for(int j = 0; j < MGSet[MGs[i]].size();j++){
+      cout<<MGSet[MGs[i]][j]<<"  ";
+    }
+    cout<<endl;
+  }*/
 }
 
 vector<int> PatternSet::translate_input(vector<int> input){
@@ -453,7 +512,14 @@ vector<int> PatternSet::translate_input(vector<int> input){
 
 void PatternSet::print(){
   for (int i=0; i!=patterns.size(); i++){
+    cout<<"pattern "<<i<<" ";
     patterns[i].print();
+
+    for (int j=0; j < MGSet[i].size(); j++){
+      cout<<MGSet[i][j]<<"  ";
+    }
+    cout<<endl;
+
   }
 }
 void PatternSet::save(char* filename){
@@ -461,7 +527,15 @@ void PatternSet::save(char* filename){
   fs.open(filename,fstream::out);
   fs<<patterns.size()<<" patterns"<<endl;
   for (int i=0; i!=patterns.size(); i++){
+    fs<<"pattern "<<i<<" ";
     patterns[i].print(fs);
+
+    if(MGs.size()>0){
+      for (int j=0; j < MGSet[i].size(); j++){
+        fs<<MGSet[i][j]<<"  ";
+      }
+      fs<<endl;
+    }
   }
   fs.close();
 }
