@@ -29,11 +29,21 @@ float LocalClassifier::predict(Mat sample, Mat& probs){
   }
 
   if (singleClass >= 0){
+    probs=Mat::zeros(1,num_classes,CV_32FC1);
     probs.at<float>(0,singleClass) = 1.0;
     return singleClass;
   }
   Mat result;
   NBC->predictProb(sample,result,probs);
+
+  float total = 0.0;
+  for (int c=0; c < probs.cols;c++){
+    total+= probs.at<float>(0,c);
+  }
+  for (int c=0; c < probs.cols;c++){
+    probs.at<float>(0,c)/=total;
+  }
+
   return result.at<float>(0,0);
 }
 
@@ -244,7 +254,7 @@ float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
   if (matches->size() == 0){
     return defaultClassifier->predict(sample);
   }
-  probs = Mat::zeros(num_of_classes,1,CV_32FC1);
+  probs = Mat::zeros(1,num_of_classes,CV_32FC1);
   vector<float> votes(num_of_classes,0);
   bool flag = true;
   for (int i =0; i < matches->size(); i++){
@@ -255,7 +265,7 @@ float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
     }
   }
   if (flag){
-    return defaultClassifier->predict(sample);
+    return defaultClassifier->predict(sample,probs);
   }
   int label;
   float maxvote = -1;
@@ -268,7 +278,7 @@ float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
       label = i;
       maxvote = votes[i];
     }
-    probs.at<float>(i,0) = votes[i]/totalVote;
+    probs.at<float>(0,i) = votes[i]/totalVote;
   }
   return label;
 }

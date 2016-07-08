@@ -581,10 +581,16 @@ patternSet->save("temp/contrast_pattern_results.txt");
   int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    if (md->size()==0){
+    /*if (md->size()==0){
       cout<<counter++<<endl;
+    }*/
+    Mat probs;
+    int response = (int)classifier.predict(testingX.row(i),md,probs);
+    /*for (int j = 0; j < num_of_classes;j++){
+      cout<<probs.at<float>(0,j)<<" ";
     }
-    int response = (int)classifier.predict(testingX.row(i),md);
+    cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
+    */
     //int response = (int)base->predict(testingX.row(i));
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){
