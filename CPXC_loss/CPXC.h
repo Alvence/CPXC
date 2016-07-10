@@ -22,6 +22,7 @@ public:
 
   LocalClassifier(){
     NBC =NormalBayesClassifier::create();
+    pattern = NULL;
   }
   float train(cv::Mat &samples, cv::Mat &labels);
   float predict(cv::Mat samples);
@@ -30,7 +31,7 @@ public:
 
 class CPXC{
 private:
-  std::vector<int>* getMatches(cv::Mat sample);
+  std::vector<int>* getMatches(std::vector<int>* ins);
 
 public:
   std::vector<LocalClassifier*> * classifiers;
@@ -47,7 +48,9 @@ public:
   void train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>*>* mds, LocalClassifier *baseClassifier,int); 
   float predict(cv::Mat sample, vector<int>* matches, cv::Mat& probs);
   float predict(cv::Mat sample, vector<int>* matches);
-  float predict(cv::Mat sample);
+  float predict1(cv::Mat sample, vector<int>* bin_ins);
+  float predict1(cv::Mat sample, vector<int>* bin_ins, cv::Mat &probs);
   void save(char* filename);
+  float TER(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys);
 };
 #endif

@@ -114,8 +114,9 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
 
     //check whether it is single class
     if (cf->classes.size()>1){
-      cf->pattern = &((patterns->get_patterns())[i]);
+      cf->pattern = &(patterns->get_patterns().at(i));
       cf->train(trainingX,trainingY);
+      cout<<cf->pattern<<endl;
       //cout<<"complete training for pattern" << i<<endl;
     }else{
       cf->singleClass = *(cf->classes.begin());
@@ -200,28 +201,26 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
   }
 }
 
-vector<int>* CPXC::getMatches(cv::Mat sample){
-  vector<int> ins;
-  for (int i =0; i<sample.cols; i++){
-    ins.push_back((int)sample.at<float>(0,i));
-  }
-  print_vector(ins);
-  vector<int> * res = new vector<int>();
+vector<int>* CPXC::getMatches(vector<int>* ins){
+  vector<int>*res = new vector<int>();
   for (int i =0; i< classifiers->size(); i++){
-    if (classifiers->at(i)->pattern->match(ins)){
+    if (classifiers->at(i)->pattern!=NULL && classifiers->at(i)->pattern->match(ins)){
       res->push_back(i);
     }
   }
-  //cout<<res->size()<<endl;
   return res;
 }
 
-float CPXC::predict(cv::Mat sample){
-  vector<int> *matches = getMatches(sample);
-  float response = predict(sample,matches);
+float CPXC::predict1(Mat sample, vector<int>* bin_ins, Mat&probs){
+  vector<int> *matches = getMatches(bin_ins);
+  float response = predict(sample,matches,probs);
   delete matches;
-  matches = NULL;
   return response;
+}
+
+float CPXC::predict1(cv::Mat sample, vector<int>* bin_ins){
+  Mat probs;
+  return predict1(sample, bin_ins, probs);
 }
 
 float CPXC::predict(Mat sample, vector<int>* matches){
@@ -281,4 +280,9 @@ float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
     probs.at<float>(0,i) = votes[i]/totalVote;
   }
   return label;
+}
+
+
+float TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys){
+  
 }

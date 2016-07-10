@@ -250,6 +250,23 @@ void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   free(ys);
 }
 
+vector<int>* get_bin_instance(ArffData *ds, BinDivider* divider, PatternSet* ps,int classIndex, int index){
+  vector<int>* ins = new vector<int>();
+  
+  ArffInstance* x = ds->get_instance(index);
+
+  for (int j = 0; j != ds->num_attributes(); j++){
+    if (j==classIndex) continue;
+    ArffValue* v = x->get(j);
+    //std::string s = *v;
+    if (!v->missing()){
+      int val = bin_value(v,ds,divider,j);
+      ins->push_back(val);
+    }
+  }
+  return ins;
+}
+
 vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int classIndex, int index){
   vector<int>* res = new vector<int>();
   vector<int>* ins = new vector<int>();
@@ -576,22 +593,30 @@ patternSet->save("temp/contrast_pattern_results.txt");
   //cout<<patternSet<<"  "<<trainingX.rows<<" "<<trainingY.rows<<" "<<ins->size()<<" "<<base<<endl;
   classifier.train(patternSet,trainingX,trainingY,ins,base,num_of_classes);
   //classifier.save("temp/model.txt");
+  for(int i = 0; i < ins->size();i++){
+    delete ins->at(i);
+  }
+  delete ins;
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
-    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    //vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
     /*if (md->size()==0){
       cout<<counter++<<endl;
     }*/
+    cout<<i<<endl;
     Mat probs;
-    int response = (int)classifier.predict(testingX.row(i),md,probs);
+    int response = (int)classifier.predict1(testingX.row(i),bin_ins);
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
     cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
     */
     //int response = (int)base->predict(testingX.row(i));
+    delete bin_ins;
+    cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){
       err++;
