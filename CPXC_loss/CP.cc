@@ -382,37 +382,24 @@ void PatternSet::prune_AMI(vector<vector<int>*>* xs, float threshold){
   patterns = newPs;
 }
 
-bool isFiltered(Pattern &p, vector<vector<int>*>* const xs,vector< vector<vector<int> *> *>* labelledXs ,int num_attr, float suppRatio){
+bool isFiltered(Pattern &p, vector<vector<int>*>* const xs,vector<vector<int> *> * LE, vector<vector<int>* >* SE ,int num_attr, float suppRatio){
   if (count(p,xs)<=num_attr){
     return true;
   }
 
-  int num_classes = labelledXs->size();
-  vector<int> counts(num_classes);
-  int largest = 0;
-  int largest_c = -1;
-  for (int c = 0; c<num_classes;c++){
-    counts[c] = count(p,labelledXs->at(c));
-    if (largest < counts[c]){
-      largest = counts[c];
-      largest_c = c;
-    }
-  }
+  float countLE = count(p,LE);
+  float countSE = count(p,SE);
 
-  for (int c = 0; c<num_classes;c++){
-    if (c!=largest_c){
-      if(largest*1.0 / (counts[c]*1.0) <suppRatio){
-        return true;
-      }
-    }
+  if (countLE/countSE <suppRatio){
+      return true;
   }
   return false;
 }
 
-void PatternSet::filter(vector<vector<int>*>* const xs, vector< vector<vector<int> *> *>* labelledXs,int num_attr,float suppRatio){
+void PatternSet::filter(vector<vector<int>*>* const xs, vector<vector<int> *> * LE, vector<vector<int>* >* SE,int num_attr,float suppRatio){
   vector<Pattern>::iterator it = patterns.begin(); 
   while(it!=patterns.end()){
-    if (isFiltered(*it,xs,labelledXs,num_attr,suppRatio)){
+    if (isFiltered(*it,xs,LE,SE,num_attr,suppRatio)){
       it = patterns.erase(it);
     }else{
       it++;

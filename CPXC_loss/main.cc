@@ -314,14 +314,13 @@ vector<int>* get_matches(ArffData *ds, BinDivider* divider, PatternSet* ps,int c
   free(ins);
   return res;
 }
-void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs,  vector<int> * &t, vector<vector< vector<int> *> *>* & labelledXs, vector<int> * largeErrSet){
+void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs,  vector<int> * &t, vector< vector<int> *> * & LE,vector<vector<int>*> * &SE, vector<int> * largeErrSet){
   free_p(Xs);
   free_p(t);
   int num_of_classes = ds->get_nominal(ds->get_attr(classIndex)->name()).size();
-  labelledXs = new vector<vector<vector<int> *> *>(num_of_classes);
-  for (int c=0;c<num_of_classes;c++){
-    labelledXs->at(c) = new vector<vector<int>* >();
-  }
+  LE = new vector<vector<int> *> ();
+  SE = new vector<vector<int> *> ();
+
   Xs = new vector<vector<int>*>();
   t = new vector<int>();
   ofstream out;
@@ -351,6 +350,26 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
     out << endl;
   }
   out.close();
+  for(int index = 0; index < ds->num_instance(); index++){
+    ArffInstance* x = ds->get_instance(index);
+    ArffValue* y = x->get(classIndex);
+    //remove higher bits representing the attributes indexs
+    vector<int> *ins = new vector<int>();
+    for (int j = 0; j != ds->num_attributes(); j++){
+      if (j==classIndex) continue;
+      ArffValue* v = x->get(j);
+      //std::string s = *v;
+      if (!v->missing()){
+        int val = bin_value(v,ds,divider,j);
+        ins->push_back(val);
+      }
+    }
+    if (find(largeErrSet->begin(),largeErrSet->end(),index)==largeErrSet->end()){
+      SE->push_back(ins);
+    }else{
+      LE->push_back(ins);
+    }
+  }
 }
 
 void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex, vector<vector<int> *> * &Xs,vector<int> * &t){ 
@@ -544,9 +563,13 @@ float run(int argc, char** argv, int first, int last){
   }
   vector<int>* targets = new vector<int>();
   vector<vector<int> *>* newXs = new vector<vector<int> *>();
-  vector< vector<vector<int> *> *>* labelledXs;
+  vector<vector<int> *> * LE;
+  vector<vector<int> *> * SE;
 
-  generate_data(tempDataFile, ds, divider, classIndex,newXs, targets, labelledXs,largeErrSet);
+  generate_data(tempDataFile, ds, divider, classIndex,newXs, targets,LE,SE,largeErrSet);
+  cout<<LE->size()<<"    "<<SE->size()<<endl;
+  if(1) return 1;
+
   char tempDPMFile[32];
   strcpy(tempDPMFile,tempDir);
   strcat(tempDPMFile,"/result");
@@ -575,7 +598,7 @@ patternSet->save("temp/pattern_results.txt");
 
   //cout<<"pattern before="<<patternSet->get_size()<<"   ";
 
-patternSet->filter(newXs,labelledXs,num_of_attributes,delta);
+patternSet->filter(newXs,largeErrSet,smallErrSet,num_of_attributes,delta);
 
 patternSet->MG();
 patternSet->save("temp/contrast_pattern_results.txt");
