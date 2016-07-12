@@ -111,12 +111,14 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
     ////for (int k=0;k < md->size();k++){
     ////  cout<< md->at(k)<<":"<<trainingY.at<float>(k,0)<<":"<<ys.at<float>(md->at(k),0)<<"  ";
     ////}cout<<endl;
+    
+    cf->pattern = &(patterns->get_patterns().at(i));
 
     //check whether it is single class
     if (cf->classes.size()>1){
-      cf->pattern = &(patterns->get_patterns().at(i));
+
       cf->train(trainingX,trainingY);
-      cout<<cf->pattern<<endl;
+      //cout<<cf->pattern<<endl;
       //cout<<"complete training for pattern" << i<<endl;
     }else{
       cf->singleClass = *(cf->classes.begin());
@@ -177,7 +179,7 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
       ccc++;
       cf->weight = 0;
     } else{
-      cf->pattern = &((patterns->get_patterns())[i]);
+      //cf->pattern = &((patterns->get_patterns())[i]);
       cf->weight = errReduction;
     }
     classifiers->push_back(cf);
@@ -204,7 +206,8 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
 vector<int>* CPXC::getMatches(vector<int>* ins){
   vector<int>*res = new vector<int>();
   for (int i =0; i< classifiers->size(); i++){
-    if (classifiers->at(i)->pattern!=NULL && classifiers->at(i)->pattern->match(ins)){
+    cout<<"aaa "<<i<< classifiers->at(i)->pattern<<endl;
+    if (classifiers->at(i)->pattern!=NULL ){
       res->push_back(i);
     }
   }

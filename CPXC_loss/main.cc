@@ -184,12 +184,42 @@ void get_instances_for_each_pattern(PatternSet *ps, vector<vector<int>* >* const
         if(ins->at(j) == NULL){
           ins->at(j) = new vector<int> ();
         }
-        ins->at(j)->push_back(largeErrSet->at(i));
+        ins->at(j)->push_back(i);
       }
     }
   }
+
 }
 
+void print_patern_stat(vector<vector<int>* >*ins, Mat trainingY,vector<int>* largeErrSet){
+
+  vector<int> LEnum(ins->size(),0);
+  vector<int> c1num(ins->size(),0);
+  vector<int> c2num(ins->size(),0);
+  vector<int> c3num(ins->size(),0);
+  
+  for(int i =0; i < ins->size();i++){
+    for (int j = 0; j < ins->at(i)->size();j++){
+      int ind = ins->at(i)->at(j);
+      if (find(largeErrSet->begin(),largeErrSet->end(),ind)!=largeErrSet->end()){
+        LEnum[i]++;
+      }
+      float t= trainingY.at<float>(ind,0);
+      if (t==0){
+        c1num[i]++;
+      }
+      if (t==1){
+        c2num[i]++;
+      }
+      if (t==2){
+        c3num[i]++;
+      }
+    }
+  }
+  for(int i =0; i < ins->size();i++){
+    printf("Pattern=%3d  #data=%3d  #LE=%3d #SE=%3d  #c1=%3d  #c2=%3d  #c3=%3d\n",i,ins->at(i)->size(),LEnum[i],ins->at(i)->size() - LEnum[i],c1num[i],c2num[i],c3num[i]);
+  }
+}
 
 void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   int cols = 0;
@@ -345,12 +375,10 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
         ins->push_back(val);
       }
     }
-    labelledXs->at(target)->push_back(ins);
-    Xs->push_back(ins);
     out << endl;
   }
   out.close();
-  for(int index = 0; index < ds->num_instance(); index++){
+  for(int index = 0; index < ds->num_instances(); index++){
     ArffInstance* x = ds->get_instance(index);
     ArffValue* y = x->get(classIndex);
     //remove higher bits representing the attributes indexs
@@ -369,6 +397,7 @@ void generate_data(char* file, ArffData* ds, BinDivider* divider, int classIndex
     }else{
       LE->push_back(ins);
     }
+    Xs->push_back(ins);
   }
 }
 
@@ -502,6 +531,23 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
   return NBC;
 }
 
+void print_pattern_coverage(PatternSet* ps,vector<vector<int>*>* xs){
+  vector<int> stat(xs->size(),0);
+  int c = 0;
+  for(int i = 0; i < xs->size(); i++){
+    for(int j = 0; j < ps->get_patterns().size();j++){
+      if(ps->get_patterns().at(j).match(xs->at(i))){
+        stat[i]++;
+      }
+    }
+    if(stat[i]!=0){
+      c++;
+      cout<<"ins "<<i<<" #matching patterns="<<stat[i]<<endl;
+    }
+  }
+  cout<<c<<" out of "<<xs->size()<<" instances are covered"<<endl;
+}
+
 
 //#define CPXC_DEBUG
 float run(int argc, char** argv, int first, int last){
@@ -567,8 +613,7 @@ float run(int argc, char** argv, int first, int last){
   vector<vector<int> *> * SE;
 
   generate_data(tempDataFile, ds, divider, classIndex,newXs, targets,LE,SE,largeErrSet);
-  cout<<LE->size()<<"    "<<SE->size()<<endl;
-  if(1) return 1;
+  //cout<<"Large="<<largeErrSet->size()<<"  "<<LE->size()<<"    "<<SE->size()<<endl;
 
   char tempDPMFile[32];
   strcpy(tempDPMFile,tempDir);
@@ -596,19 +641,19 @@ float run(int argc, char** argv, int first, int last){
 patternSet->save("temp/pattern_results.txt");
   //patternSet->print();
 
-  //cout<<"pattern before="<<patternSet->get_size()<<"   ";
+  cout<<"pattern before="<<patternSet->get_size()<<endl;;
 
-patternSet->filter(newXs,largeErrSet,smallErrSet,num_of_attributes,delta);
+patternSet->filter(newXs,LE,SE,num_of_attributes,delta);
 
 patternSet->MG();
 patternSet->save("temp/contrast_pattern_results.txt");
-  //cout<<"pattern after="<<patternSet->get_size()<<"   ";
-
+  cout<<"pattern after="<<patternSet->get_size()<<endl;;
 
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
 
   get_instances_for_each_pattern(patternSet, newXs, ins, largeErrSet);
-
+  //print_pattern_coverage(patternSet,newXs);
+  
   CPXC classifier;
   classifier.num_of_classes = num_of_classes;
   LocalClassifier* base = new LocalClassifier();
@@ -624,22 +669,22 @@ patternSet->save("temp/contrast_pattern_results.txt");
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
-    //vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
+    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    //vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
     /*if (md->size()==0){
       cout<<counter++<<endl;
     }*/
-    cout<<i<<endl;
     Mat probs;
-    int response = (int)classifier.predict1(testingX.row(i),bin_ins);
+    int response = (int)classifier.predict(testingX.row(i),md);
+    //int response = (int)classifier.predict1(testingX.row(i),bin_ins);
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
     cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
     */
     //int response = (int)base->predict(testingX.row(i));
-    delete bin_ins;
-    cout<<i<<endl;
+    //delete bin_ins;
+    //cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){
       err++;

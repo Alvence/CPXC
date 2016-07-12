@@ -437,10 +437,10 @@ void PatternSet::MG(){
       }
     }
   }
-  
+ /* 
   for (int i = 0; i < MGs.size();i++){
     cout<<"MG "<<MGs[i]<<"  :";
-  }/*
+  }
   for(int i=0; i < patterns.size();i++){
     cout<<i<<": ";
     for(int j = 0; j < MGSet[i].size();j++){
