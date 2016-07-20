@@ -14,6 +14,7 @@ private:
   std::vector<int> items;
   std::vector<Pattern > union_patterns;
 public:
+  Pattern(){}
   Pattern(int n, std::vector<int> is);
 
   bool match(std::vector<int> instance);

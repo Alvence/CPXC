@@ -665,25 +665,26 @@ patternSet->save("temp/contrast_pattern_results.txt");
     delete ins->at(i);
   }
   delete ins;
+  
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
     vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    //vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
+    vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
     /*if (md->size()==0){
       cout<<counter++<<endl;
     }*/
     Mat probs;
-    int response = (int)classifier.predict(testingX.row(i),md);
-    //int response = (int)classifier.predict1(testingX.row(i),bin_ins);
+    //int response = (int)classifier.predict(testingX.row(i),md);
+    int response = (int)classifier.predict1(testingX.row(i),bin_ins);
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
     cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
     */
     //int response = (int)base->predict(testingX.row(i));
-    //delete bin_ins;
+    delete bin_ins;
     //cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
     if (response!=trueLabel){

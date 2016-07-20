@@ -12,7 +12,7 @@ using namespace cv::ml;
 
 class LocalClassifier{
 public:
-  Pattern *pattern;
+  Pattern pattern;
   std::set<int> classes;
   int num_classes;
   float weight;
@@ -22,7 +22,6 @@ public:
 
   LocalClassifier(){
     NBC =NormalBayesClassifier::create();
-    pattern = NULL;
   }
   float train(cv::Mat &samples, cv::Mat &labels);
   float predict(cv::Mat samples);

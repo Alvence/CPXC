@@ -56,7 +56,7 @@ void CPXC::save(char* filename){
       continue;
     }
     fs<<"pattern:  ";
-    classifiers->at(i)->pattern->print(fs);
+    classifiers->at(i)->pattern.print(fs);
     fs<<"weight = "<< classifiers->at(i)->weight<<endl<<endl;
   }
 
@@ -112,7 +112,8 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
     ////  cout<< md->at(k)<<":"<<trainingY.at<float>(k,0)<<":"<<ys.at<float>(md->at(k),0)<<"  ";
     ////}cout<<endl;
     
-    cf->pattern = &(patterns->get_patterns().at(i));
+
+    cf->pattern = patterns->get_patterns().at(i);
 
     //check whether it is single class
     if (cf->classes.size()>1){
@@ -206,8 +207,7 @@ void CPXC::train(PatternSet* patterns, cv::Mat &xs, cv::Mat &ys, std::vector<std
 vector<int>* CPXC::getMatches(vector<int>* ins){
   vector<int>*res = new vector<int>();
   for (int i =0; i< classifiers->size(); i++){
-    cout<<"aaa "<<i<< classifiers->at(i)->pattern<<endl;
-    if (classifiers->at(i)->pattern!=NULL ){
+    if (classifiers->at(i)->pattern.match(ins) ){
       res->push_back(i);
     }
   }
