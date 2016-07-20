@@ -692,7 +692,6 @@ patternSet->save("temp/contrast_pattern_results.txt");
     }
     //cout<<response<<endl;
   }
-  //cout<<"AUC="<< AAUC/3<<"  ";
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
   //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;
   //free(patternSet);

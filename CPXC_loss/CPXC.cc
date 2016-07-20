@@ -286,6 +286,58 @@ float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
 }
 
 
-float TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys){
-  
+float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<std::vector<int>* >* bin_xs){
+    float totErrD = 0;
+    float totErrM = 0;
+
+    for(int i =0; i < bin_xs->size(); i ++){
+      float errD;
+      float errM;
+      Mat sample = xs.row(i);
+      Mat probs;
+      Mat result;
+      base->predictProb(sample, result, probs);
+
+      float V = 0;
+      for (int c = 0; c < num_of_classes; c++){
+        V+=probs.at<float>(0,c); 
+      }
+      int res = (int) result.at<float>(0,0);
+      float prob = probs.at<float>(0,res)/V;
+      if (fabs(res - ys.at<float>(i,0))>1e-7){
+        errD = 1;
+      } else{
+        errD = 1 - prob;
+      }
+
+      totErrD+=errD;
+
+
+      Mat probs1;
+      vector<int> *matches = getMatches(bin_xs->at(i));
+      if(matches->size()==0){
+        delete matches;
+        continue;
+      }
+      float response = predict(sample,matches,probs1);
+      V = 0;
+      for (int c = 0; c < num_of_classes; c++){
+        V+=probs1.at<float>(0,c); 
+      }
+      prob = probs1.at<float>(0,response)/V;
+    
+      if (fabs(response - ys.at<float>(i,0))>1e-7){
+        errM = 1;
+      } else{
+        errM = 1 - prob;
+      }
+
+      totErrM = totErrM + fabs(errD-errM);
+      delete matches;
+    }
+    if(totErrD == 0){
+      return 0;
+    }else{
+      return totErrM / totErrD;
+    }
 }
