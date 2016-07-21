@@ -341,3 +341,77 @@ float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<s
       return totErrM / totErrD;
     }
 }
+
+CPXC generate_new(CPXC* origin, vector<int> PS){
+  CPXC res;
+  res.num_of_classes = origin->num_of_classes;
+  res.defaultClassifier = origin->defaultClassifier;
+  res.classifiers = new vector<LocalClassifier*>();
+  
+  for(int i = 0; i < PS.size(); i++){
+    res.classifiers->push_back(origin->classifiers->at(PS[i]));
+  }
+
+  return res;
+}
+float CPXC::obj(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs){
+  return TER(base, xs, ys, bin_xs);
+}
+
+CPXC CPXC::optimize(int k,Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs){
+  vector<int> PS;
+  vector<int> NPS;
+  for(int i = 0; i < classifiers->size();i++){
+    NPS.push_back(i);
+  }
+
+  while(PS.size()<k){
+    CPXC curC = generate_new(this,PS);
+    float objV = curC.obj(base, xs, ys, bin_xs);
+    float curObj = 0;
+    int cur = -1;
+    for(int i = 0; i < NPS.size();i++){
+      vector<int> tempPS = PS;
+      tempPS.push_back(NPS[i]);
+      CPXC tempC = generate_new(this, tempPS);
+      float tempO =  tempC.obj(base, xs, ys, bin_xs);
+      if(curObj < tempO){
+        cur = i;
+        curObj = tempO;
+      }
+    }
+    
+    if(cur!=-1){
+      PS.push_back(NPS[cur]);
+      NPS.erase(NPS.begin()+cur);
+    }
+    int iPS = -1;
+    int iNPS = -1;
+    for (int i = 0; i < PS.size();i++){
+      for(int j = 0; j < NPS.size();j++){
+        vector<int> tempPS = PS;
+        int vj =NPS[j];
+        tempPS.erase(tempPS.begin()+i);
+        tempPS.push_back(vj);
+        CPXC tempC = generate_new(this, tempPS);
+        if(curObj < tempC.obj(base, xs, ys, bin_xs)){
+          iPS = i;
+          iNPS = j;
+        }
+      }
+    }
+    if((curObj - objV)/objV < 0.001){
+      break;
+    }else if (iPS!=-1){
+      int v1 = PS[iPS];
+      int v2 = NPS[iNPS];
+      PS.erase(PS.begin()+iPS);
+      NPS.erase(NPS.begin()+iNPS);
+      PS.push_back(v2);
+      NPS.push_back(v1);
+    }
+  }
+  return generate_new(this,PS);
+}
+
+

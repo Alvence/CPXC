@@ -51,5 +51,7 @@ public:
   float predict1(cv::Mat sample, vector<int>* bin_ins, cv::Mat &probs);
   void save(char* filename);
   float TER(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
+  float obj(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
+  CPXC optimize(int k,Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
 };
 #endif

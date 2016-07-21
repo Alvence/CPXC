@@ -280,7 +280,7 @@ void translate_input(ArffData *ds, Mat &trainingX, Mat& trainingY){
   free(ys);
 }
 
-vector<int>* get_bin_instance(ArffData *ds, BinDivider* divider, PatternSet* ps,int classIndex, int index){
+vector<int>* get_bin_instance(ArffData *ds, BinDivider* divider,int classIndex, int index){
   vector<int>* ins = new vector<int>();
   
   ArffInstance* x = ds->get_instance(index);
@@ -666,18 +666,29 @@ patternSet->save("temp/contrast_pattern_results.txt");
   }
   delete ins;
   
+  vector<vector<int>*>* bin_xs = new vector<vector<int>*>(trainingX.rows);
+  for(int i =0; i<bin_xs->size();i++){
+    bin_xs->at(i) = get_bin_instance(ds,divider,classIndex,i);
+  }
+
+  cout<<"TER="<<classifier.TER(nbc,trainingX,trainingY,bin_xs)<<endl;
+  CPXC new_c = classifier.optimize(10,nbc,trainingX,trainingY,bin_xs);
+  cout<<"after TER="<<new_c.TER(nbc,trainingX,trainingY,bin_xs)<<" size="<<new_c.classifiers->size()<<endl;
+  //if(1) return 1;
+
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
   for (int i = 0; i < testingds->num_instances();i++){
-    vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
-    vector<int>* bin_ins = get_bin_instance(testingds,divider,patternSet,classIndex,i);
+    //vector<int>* md = get_matches(testingds,divider,patternSet,classIndex,i);
+    vector<int>* bin_ins = get_bin_instance(testingds,divider,classIndex,i);
     /*if (md->size()==0){
       cout<<counter++<<endl;
     }*/
     Mat probs;
     //int response = (int)classifier.predict(testingX.row(i),md);
-    int response = (int)classifier.predict1(testingX.row(i),bin_ins);
+    //int response = (int)classifier.predict1(testingX.row(i),bin_ins);
+    int response = (int)new_c.predict1(testingX.row(i),bin_ins);
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
