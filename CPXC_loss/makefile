@@ -17,7 +17,7 @@ OBJFILES :=  BinDivider.o CP.o CPXC.o
 CC      := g++
 MAKE    := make
 RM 			:= rm
-CFLAGS := -g -w 
+CFLAGS := -g -w -std=c++11
 LFLAGS := -L$(ARFFLIBDIR) -l$(ARFFLIB)  -LGcGrowth -lGcGrowth `pkg-config --cflags --libs opencv` -lm -lopencv_core -lopencv_highgui -lopencv_video -lopencv_imgproc 
 INCLUDE  := -I$(SRCDIR) -I$(ARFFSRCDIR) -IGcGrowth
 LD       := g++

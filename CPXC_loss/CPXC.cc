@@ -29,7 +29,7 @@ float LocalClassifier::predict(Mat sample, Mat& probs){
   }
 
   if (singleClass >= 0){
-    probs=Mat::zeros(1,num_classes,CV_32FC1);
+    probs.create(1,num_classes,CV_32FC1);
     probs.at<float>(0,singleClass) = 1.0;
     return singleClass;
   }
@@ -214,7 +214,7 @@ vector<int>* CPXC::getMatches(vector<int>* ins){
   return res;
 }
 
-float CPXC::predict1(Mat sample, vector<int>* bin_ins, Mat&probs){
+float CPXC::predict1(Mat sample, vector<int>* bin_ins, Mat &probs){
   vector<int> *matches = getMatches(bin_ins);
   float response = predict(sample,matches,probs);
   delete matches;
@@ -254,9 +254,10 @@ float CPXC::predict(Mat sample, vector<int>* matches){
 }
 float CPXC::predict(Mat sample, vector<int>* matches, Mat &probs){
   if (matches->size() == 0){
-    return defaultClassifier->predict(sample);
+    return defaultClassifier->predict(sample,probs);
   }
-  probs = Mat::zeros(1,num_of_classes,CV_32FC1);
+  probs.create(1,num_of_classes,CV_32FC1);
+
   vector<float> votes(num_of_classes,0);
   bool flag = true;
   for (int i =0; i < matches->size(); i++){

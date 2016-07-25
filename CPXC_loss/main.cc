@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -549,6 +550,15 @@ void print_pattern_coverage(PatternSet* ps,vector<vector<int>*>* xs){
 }
 
 
+template <class T>
+void write_auc_file(vector<T>* vec, char* file){
+  ofstream of;
+  of.open(file);
+  for(int i = 0; i < vec->size(); i++){
+    of<< (i==00?"":" ,")<<vec->at(i);
+  }
+  of.close();
+}
 //#define CPXC_DEBUG
 float run(int argc, char** argv, int first, int last){
   analyze_params(argc,argv);
@@ -675,7 +685,10 @@ patternSet->save("temp/contrast_pattern_results.txt");
   CPXC new_c = classifier.optimize(10,nbc,trainingX,trainingY,bin_xs);
   cout<<"after TER="<<new_c.TER(nbc,trainingX,trainingY,bin_xs)<<" size="<<new_c.classifiers->size()<<endl;
   //if(1) return 1;
-
+  
+  vector<int> allLabels;
+  vector<vector<float> >allProbs(num_of_classes);
+  
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
@@ -688,7 +701,8 @@ patternSet->save("temp/contrast_pattern_results.txt");
     Mat probs;
     //int response = (int)classifier.predict(testingX.row(i),md);
     //int response = (int)classifier.predict1(testingX.row(i),bin_ins);
-    int response = (int)new_c.predict1(testingX.row(i),bin_ins);
+    int response = (int)new_c.predict1(testingX.row(i),bin_ins,probs);
+
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
@@ -698,10 +712,34 @@ patternSet->save("temp/contrast_pattern_results.txt");
     delete bin_ins;
     //cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
+    allLabels.push_back(trueLabel);
+    for(int j =0 ; j < num_of_classes; j++){
+      allProbs[j].push_back(probs.at<float>(0,j));
+    }
+
     if (response!=trueLabel){
       err++;
     }
     //cout<<response<<endl;
+  }
+ 
+
+  //print files for auc calculation
+  vector<int> n_classes;
+  n_classes.push_back(num_of_classes);
+  char * bbb = "temp/setting.txt";
+  write_auc_file(&n_classes,bbb );
+  char * aaa="temp/label.txt";
+  write_auc_file(&allLabels,aaa);
+  print_vector(allLabels);
+  for (int i = 0; i < num_of_classes; i++){
+    char filename[30];
+    print_vector(allProbs[i]);
+    strcpy(filename,"");
+    strcat(filename,"temp/p");
+    strcat(filename,to_string(i).c_str());
+    strcat(filename,".txt");
+    write_auc_file(&(allProbs[i]),filename);
   }
   //cout<<"class err = "<<err*1.0/testingX.rows<<endl;
   //cout<<"fold "<<n<<" err="<<err*1.0/testingX.rows<<endl;
@@ -717,6 +755,7 @@ patternSet->save("temp/contrast_pattern_results.txt");
   //free(largeErrSet);
   return err*1.0/testingX.rows;
 }
+
 
 template <class T>
 void free(T* p){
