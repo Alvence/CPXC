@@ -2,6 +2,7 @@ from numpy import loadtxt
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import svm, datasets
+from sklearn import metrics
 from sklearn.metrics import roc_curve, auc
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import label_binarize
@@ -19,7 +20,7 @@ for i in classes:
     for j in range(len(scores)):
         y_score[j,i] = scores[j]
 
-if n_classes == 2:
+if n_classes > 2:
     print y_test
     print y_score
     fpr = dict()
@@ -54,5 +55,8 @@ if n_classes == 2:
     roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
     print(roc_auc["macro"])
 else:
-    fpr, tpr, thresholds = metrics.roc_curve(y_test[:,0], y_score[:,0])
-    auc1 = metrics.auc(fpr, tpr)
+    fpr, tpr, thresholds = metrics.roc_curve(y_test[:,0], y_score[:,0],pos_label=0)
+    auc1 = metrics.auc(fpr, tpr )
+    print auc1
+    print y_test[:,0]
+    print y_score[:,0]
