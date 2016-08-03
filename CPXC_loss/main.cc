@@ -448,6 +448,11 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
   largeErrSet->clear();
   smallErrSet->clear();
 
+  Mat sampleLE = Mat::zeros(0,trainingX.cols,CV_32FC1);
+  Mat labelLE = Mat::zeros(0,trainingY.cols,CV_32FC1);
+  Mat sampleSE = Mat::zeros(0,trainingX.cols,CV_32FC1);
+  Mat labelSE = Mat::zeros(0,trainingY.cols,CV_32FC1);
+
 
   // Train the SVM
   Ptr<NormalBayesClassifier> NBC = NormalBayesClassifier::create();
@@ -459,37 +464,30 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
   float low = 10000;
   float high = -10000;
 
-  for (float ratio = -100; ratio < 0; ){
-    int tempSize = 0;
-    for (int i =0; i< trainingX.rows;i++){
-      Mat sample = trainingX.row(i);
-      Mat probs;
-      Mat result;
-      
-      NBC->predictProb(sample,result,probs);
+  vector<float> errs;
+  for (int i =0; i< trainingX.rows;i++){
+    Mat sample = trainingX.row(i);
+    Mat probs;
+    Mat result;
+    
+    NBC->predictProb(sample,result,probs);
   
-      float V = 0;
-      for (int c = 0; c < num_classes; c++){
-        V+=probs.at<float>(0,c); 
-      }
-      int res = (int) result.at<float>(0,0);
-      if (fabs(res - trainingY.at<float>(i,0))>1e-7){
-        tempSize++;
-      } else if (log10(probs.at<float>(0,res)/V)*100 < ratio){
-        tempSize++;
-      }
+    float V = 0;
+    for (int c = 0; c < num_classes; c++){
+      V+=probs.at<float>(0,c); 
     }
-    if (fabs(tempSize - N*rho) < fabs(size - N*rho)){
-      size = tempSize;
-      r = ratio;
+    float er = 0;
+    int res = (int) result.at<float>(0,0);
+    if (fabs(res - trainingY.at<float>(i,0))>1e-7){
+      er = 0;
+    } else{
+      er = probs.at<float>(0,res)/V;
     }
-    if(ratio < -2){
-      ratio +=1;
-    }else{
-      ratio += 0.001;
-    }
+    errs.push_back(er);
   }
-
+  sort(errs.begin(),errs.end());
+  float pivot = errs[(int)(errs.size()*0.45)];
+  cout<<"pivot="<<pivot<<endl;
   //cout<<"si9ze=" <<size<<endl;
   for (int i =0; i< trainingX.rows;i++){
     Mat sample = trainingX.row(i);
@@ -510,7 +508,7 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
       cout<<" "<<(probs.at<float>(0,c))/V; 
     }
     cout<<endl;*/
-    float prob = log10(probs.at<float>(0,response)/V)*100;
+    float prob = probs.at<float>(0,response)/V;
 
     if (prob < low ){
       low =  prob; 
@@ -521,32 +519,57 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
     if ((fabs(response)- trainingY.at<float>(i,0))>1e-7){
       err += 1;
       largeErrSet->push_back(i);
-    } else if (prob < r){
+      sampleLE.push_back(trainingX.row(i));
+      labelLE.push_back(trainingY.row(i));
+    } else if (prob < pivot){
       largeErrSet->push_back(i);
+      sampleLE.push_back(trainingX.row(i));
+      labelLE.push_back(trainingY.row(i));
     }else{
       smallErrSet->push_back(i);
+      sampleSE.push_back(trainingX.row(i));
+      labelSE.push_back(trainingY.row(i));
     }
   }
   //cout<<"trainning err = "<<err/trainingX.rows<<endl;
-  //cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows <<"high = "<<high<<"  low ="<<low<<endl;
+  cout<<"largeErrSet size = "<<largeErrSet->size()<<" out of "<<trainingX.rows <<"high = "<<high<<"  low ="<<low<<endl;
+  
+  
+  LocalClassifier* base = new LocalClassifier();
+  base->NBC = NBC;
+  //stat
+  float acc, fscore;
+  base->statBinaryCase(sampleLE, labelLE, acc,fscore);
+  cout<<"For LE: acc="<<acc<<"  f-measure="<<fscore<<endl;
+  
+  base->statBinaryCase(sampleSE, labelSE, acc,fscore);
+  cout<<"For SE: acc="<<acc<<"  f-measure="<<fscore<<endl;
   return NBC;
 }
 
 void print_pattern_coverage(PatternSet* ps,vector<vector<int>*>* xs){
   vector<int> stat(xs->size(),0);
+  vector<int> statP(ps->get_patterns().size(),0);
   int c = 0;
   for(int i = 0; i < xs->size(); i++){
     for(int j = 0; j < ps->get_patterns().size();j++){
       if(ps->get_patterns().at(j).match(xs->at(i))){
         stat[i]++;
+        statP[j]++;
       }
     }
     if(stat[i]!=0){
       c++;
-      cout<<"ins "<<i<<" #matching patterns="<<stat[i]<<endl;
+      //cout<<"ins "<<i<<" #matching patterns="<<stat[i]<<endl;
     }
   }
   cout<<c<<" out of "<<xs->size()<<" instances are covered"<<endl;
+  
+  cout<<"the instances per pattern"<<endl;
+  print_vector(statP);
+  cout<<"patterns per instance"<<endl;
+  print_vector(stat);
+
 }
 
 
@@ -555,7 +578,7 @@ void write_auc_file(vector<T>* vec, char* file){
   ofstream of;
   of.open(file);
   for(int i = 0; i < vec->size(); i++){
-    of<< (i==00?"":" ,")<<vec->at(i);
+    of<< (i==0?"":" ,")<<vec->at(i);
   }
   of.close();
 }
@@ -662,8 +685,11 @@ patternSet->save("temp/contrast_pattern_results.txt");
   vector<vector<int>* >* ins = new vector<vector<int>* >(patternSet->get_size());
 
   get_instances_for_each_pattern(patternSet, newXs, ins, largeErrSet);
-  //print_pattern_coverage(patternSet,newXs);
   
+  print_pattern_coverage(patternSet,newXs);
+ 
+  if(1) return 1;
+
   CPXC classifier;
   classifier.num_of_classes = num_of_classes;
   LocalClassifier* base = new LocalClassifier();
@@ -684,11 +710,12 @@ patternSet->save("temp/contrast_pattern_results.txt");
   cout<<"TER="<<classifier.TER(nbc,trainingX,trainingY,bin_xs)<<endl;
   CPXC new_c = classifier.optimize(10,nbc,trainingX,trainingY,bin_xs);
   cout<<"after TER="<<new_c.TER(nbc,trainingX,trainingY,bin_xs)<<" size="<<new_c.classifiers->size()<<endl;
-  //if(1) return 1;
   
   vector<int> allLabels;
   vector<vector<float> >allProbs(num_of_classes);
   
+  vector<int> statCov;
+
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
   int counter = 0;
@@ -700,15 +727,19 @@ patternSet->save("temp/contrast_pattern_results.txt");
     }*/
     Mat probs;
     //int response = (int)classifier.predict(testingX.row(i),md);
-    //int response = (int)classifier.predict1(testingX.row(i),bin_ins);
+    //int response = (int)classifier.predict1(testingX.row(i),bin_ins,probs);
     int response = (int)new_c.predict1(testingX.row(i),bin_ins,probs);
+
+    vector<int>* md = new_c.getMatches(bin_ins);
+    statCov.push_back(md->size());
+    delete md;
 
     /*for (int j = 0; j < num_of_classes;j++){
       cout<<probs.at<float>(0,j)<<" ";
     }
     cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
     */
-    //int response = (int)base->predict(testingX.row(i));
+   // int response = (int)base->predict(testingX.row(i),probs);
     delete bin_ins;
     //cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
@@ -722,7 +753,8 @@ patternSet->save("temp/contrast_pattern_results.txt");
     }
     //cout<<response<<endl;
   }
- 
+  
+  new_c.print_cover(statCov);
 
   //print files for auc calculation
   vector<int> n_classes;
@@ -731,10 +763,8 @@ patternSet->save("temp/contrast_pattern_results.txt");
   write_auc_file(&n_classes,bbb );
   char * aaa="temp/label.txt";
   write_auc_file(&allLabels,aaa);
-  print_vector(allLabels);
   for (int i = 0; i < num_of_classes; i++){
     char filename[30];
-    print_vector(allProbs[i]);
     strcpy(filename,"");
     strcat(filename,"temp/p");
     strcat(filename,to_string(i).c_str());

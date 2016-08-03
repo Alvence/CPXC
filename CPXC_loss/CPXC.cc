@@ -23,6 +23,41 @@ float LocalClassifier::predict(Mat sample){
   return result.at<float>(0,0);
 }
 
+
+void LocalClassifier::statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore){
+  float precision, recall;
+  int tp = 0;
+  int fp = 0;
+  int tn = 0;
+  int fn = 0;
+  int err=0;
+  for(int i = 0; i < samples.rows;i++){
+    int rep = (int) predict(samples.row(i));
+    int trueLabel = (int) labels.at<float>(i,0);
+    if(trueLabel == 1 && rep == 1){
+      tp++;
+    }else if(trueLabel == 0 && rep == 1){
+      fp++;
+      err++;
+    }
+    if(trueLabel == 0 && rep == 0){
+      tn++;
+    }
+    if(trueLabel == 1 && rep == 0){
+      fn++;
+      err++;
+    }
+  }
+  acc = 1 - err*1.0/samples.rows;
+  precision = tp*1.0 / (fp+tp);
+  recall = tp*1.0 / (tp+fn);
+  float s1 = 2 * (precision*recall)*1.0/(precision + recall);
+  precision = tn*1.0 / (fn+tn);
+  recall = tn*1.0 / (tn+fp);
+  float s2 = 2 * (precision*recall)*1.0/(precision + recall);
+  fscore = (s1+s2)/2;
+}
+
 float LocalClassifier::predict(Mat sample, Mat& probs){
   if (sample.rows>1){
     return 0;
@@ -291,6 +326,8 @@ float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<s
     float totErrD = 0;
     float totErrM = 0;
 
+    vector<int> statCov;
+
     for(int i =0; i < bin_xs->size(); i ++){
       float errD;
       float errM;
@@ -301,7 +338,10 @@ float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<s
 
       float V = 0;
       for (int c = 0; c < num_of_classes; c++){
-        V+=probs.at<float>(0,c); 
+        V+=probs.at<float>(0,c);
+      }
+      if(V==0){
+        continue; 
       }
       int res = (int) result.at<float>(0,0);
       float prob = probs.at<float>(0,res)/V;
@@ -313,9 +353,9 @@ float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<s
 
       totErrD+=errD;
 
-
       Mat probs1;
       vector<int> *matches = getMatches(bin_xs->at(i));
+      statCov.push_back(matches->size());
       if(matches->size()==0){
         delete matches;
         continue;
@@ -336,11 +376,36 @@ float CPXC::TER(Ptr<NormalBayesClassifier> base, Mat &xs, Mat &ys, std::vector<s
       totErrM = totErrM + fabs(errD-errM);
       delete matches;
     }
-    if(totErrD == 0){
+    //print_cover(statCov);
+    if(fabs(totErrD)<1e-8){
       return 0;
     }else{
       return totErrM / totErrD;
     }
+}
+void CPXC::print_pattern_cover(vector<vector<int>* >* xs){
+  vector<int> stat(classifiers->size(),0);
+  for(int i = 0; i < xs->size();i++){
+    for(int j = 0; j < classifiers->size();j++){
+      if(classifiers->at(j)->pattern.match(xs->at(i))){
+        stat[j]++;
+      }
+    }
+  }
+  cout<<"Pattern Coverage for Patterns:"<<endl;
+  print_vector(stat);
+}
+
+void CPXC::print_cover(vector<int> statCov){
+    int countZ = 0;
+    int countV = 0;
+    for(int i = 0; i < statCov.size();i++){
+      if(statCov[i]==0){
+        countZ++;
+      }
+      countV+= statCov[i];
+    }
+    cout<<"count zero = "<<countZ<<" avarage cov="<<countV*1.0/statCov.size()<<endl;
 }
 
 CPXC generate_new(CPXC* origin, vector<int> PS){

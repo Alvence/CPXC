@@ -26,11 +26,11 @@ public:
   float train(cv::Mat &samples, cv::Mat &labels);
   float predict(cv::Mat samples);
   float predict(Mat sample, Mat& probs);
+
+  void statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore);
 };
 
 class CPXC{
-private:
-  std::vector<int>* getMatches(std::vector<int>* ins);
 
 public:
   std::vector<LocalClassifier*> * classifiers;
@@ -50,8 +50,11 @@ public:
   float predict1(cv::Mat sample, vector<int>* bin_ins);
   float predict1(cv::Mat sample, vector<int>* bin_ins, cv::Mat &probs);
   void save(char* filename);
+  void print_cover(vector<int> statCov);
+  std::vector<int>* getMatches(vector<int>* ins);
   float TER(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
   float obj(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
   CPXC optimize(int k,Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
+  void print_pattern_cover(vector<vector<int>* >* xs);
 };
 #endif
