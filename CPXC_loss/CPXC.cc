@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <fstream>
+#include <algorithm>
 #include "Utils.h"
 using namespace cv;
 using namespace std;
@@ -262,17 +263,52 @@ vector<int>* CPXC::getMatches(vector<int>* ins){
   return res;
 }
 
-void CPXC::printPatternStat(Mat& samples, Mat& labels, vector<vector<int>* >* bin_xs){
-  vector<vector<int>> mds;
-  vector<int> flag(samples.rows,0);
+void CPXC::printPatternLS(vector<vector<int>* >* bin_xs,vector<int>* LE){
+  cout<<"LE SE heat map:"<<endl;
+  int CS = 0, CL = 0;
   for(int i =0; i < classifiers->size();i++){
     vector<int> md;
     for(int j = 0; j < bin_xs->size(); j++){
-      if (classifiers->at(i)->pattern.match(bin_xs->at(j))){
+      if (find(LE->begin(),LE->end(),j)==LE->end()){
+        continue;
+      }
+      bool isMatch = classifiers->at(i)->pattern.match(bin_xs->at(j));
+      cout<<(j==0?"":" ")<<(isMatch?1:0);
+      if(isMatch){
+        CL++;
+      }
+    }
+    cout<<" SSS";
+    for(int j = 0; j < bin_xs->size(); j++){
+      if (find(LE->begin(),LE->end(),j)!=LE->end()){
+        continue;
+      }
+      bool isMatch = classifiers->at(i)->pattern.match(bin_xs->at(j));
+      cout<<(j==0?"":" ")<<(isMatch?1:0);
+      if(isMatch){
+        CS++;
+      }
+    }
+    cout<<endl;
+  }
+  cout<<"CL="<<CL<<"  CS="<<CS<<endl;
+}
+
+void CPXC::printPatternStat(Mat& samples, Mat& labels, vector<vector<int>* >* bin_xs){
+  vector<vector<int>> mds;
+  vector<int> flag(samples.rows,0);
+  cout<<"heat map:"<<endl;
+  for(int i =0; i < classifiers->size();i++){
+    vector<int> md;
+    for(int j = 0; j < bin_xs->size(); j++){
+      bool isMatch = classifiers->at(i)->pattern.match(bin_xs->at(j));
+      cout<<(j==0?"":" ")<<(isMatch?1:0);
+      if (isMatch){
         md.push_back(j);
         flag[j] = 1;
       }
     }
+    cout<<endl;
     mds.push_back(md);
   }
 

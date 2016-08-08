@@ -57,5 +57,6 @@ public:
   CPXC optimize(int k,Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
   void print_pattern_cover(vector<vector<int>* >* xs);
   void printPatternStat(Mat& samples, Mat& labels, vector<vector<int>* >* bin_xs);
+  void printPatternLS(vector<vector<int>* >* bin_xs,vector<int>* LE);
 };
 #endif

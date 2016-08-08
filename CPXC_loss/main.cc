@@ -552,19 +552,18 @@ void print_pattern_coverage(PatternSet* ps,vector<vector<int>*>* xs){
   vector<int> stat(xs->size(),0);
   vector<int> statP(ps->get_patterns().size(),0);
   int c = 0;
-  for(int i = 0; i < xs->size(); i++){
-    for(int j = 0; j < ps->get_patterns().size();j++){
-      if(ps->get_patterns().at(j).match(xs->at(i))){
+  //cout<<"heat map:"<<endl;
+  for(int j = 0; j < ps->get_patterns().size();j++){
+    for(int i = 0; i < xs->size(); i++){
+      bool flag = ps->get_patterns().at(j).match(xs->at(i));
+      //cout<< (i==0?"":" ")<< (flag?1:0);
+      if(flag){
         stat[i]++;
         statP[j]++;
       }
     }
-    if(stat[i]!=0){
-      c++;
-      //cout<<"ins "<<i<<" #matching patterns="<<stat[i]<<endl;
-    }
+    //cout<<endl;
   }
-  cout<<c<<" out of "<<xs->size()<<" instances are covered"<<endl;
   
   cout<<"the instances per pattern"<<endl;
   print_vector(statP);
@@ -716,6 +715,8 @@ patternSet->save("temp/contrast_pattern_results.txt");
   new_c.print_pattern_cover(bin_xs);
   cout<<"pattern stat"<<endl;
   new_c.printPatternStat(trainingX,trainingY,bin_xs);
+  cout<<endl;
+  new_c.printPatternLS(bin_xs,largeErrSet);
   cout<<endl;
 
   vector<int> allLabels;
