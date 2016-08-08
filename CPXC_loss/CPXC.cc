@@ -24,38 +24,51 @@ float LocalClassifier::predict(Mat sample){
 }
 
 
-void LocalClassifier::statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore){
+void LocalClassifier::statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore, int & num_c1, int &num_c2){
   float precision, recall;
   int tp = 0;
   int fp = 0;
   int tn = 0;
   int fn = 0;
   int err=0;
+  num_c1 = 0;
+  num_c2 = 0;
   for(int i = 0; i < samples.rows;i++){
     int rep = (int) predict(samples.row(i));
     int trueLabel = (int) labels.at<float>(i,0);
     if(trueLabel == 1 && rep == 1){
       tp++;
+      num_c2++;
     }else if(trueLabel == 0 && rep == 1){
       fp++;
       err++;
+      num_c1++;
     }
     if(trueLabel == 0 && rep == 0){
       tn++;
+      num_c1++;
     }
     if(trueLabel == 1 && rep == 0){
       fn++;
       err++;
+      num_c2++;
     }
   }
   acc = 1 - err*1.0/samples.rows;
   precision = tp*1.0 / (fp+tp);
   recall = tp*1.0 / (tp+fn);
+  //cout<<"tp="<<tp<<" fp="<<fp<<" tn"<<tn<<" fn"<<fn<<endl;
   float s1 = 2 * (precision*recall)*1.0/(precision + recall);
   precision = tn*1.0 / (fn+tn);
   recall = tn*1.0 / (tn+fp);
   float s2 = 2 * (precision*recall)*1.0/(precision + recall);
-  fscore = (s1+s2)/2;
+  if(isnan(s1)){
+    fscore = s2;
+  } else if(isnan(s2)){
+    fscore = s1;
+  } else{
+    fscore = (s1+s2)/2;
+  }
 }
 
 float LocalClassifier::predict(Mat sample, Mat& probs){
@@ -247,6 +260,54 @@ vector<int>* CPXC::getMatches(vector<int>* ins){
     }
   }
   return res;
+}
+
+void CPXC::printPatternStat(Mat& samples, Mat& labels, vector<vector<int>* >* bin_xs){
+  vector<vector<int>> mds;
+  vector<int> flag(samples.rows,0);
+  for(int i =0; i < classifiers->size();i++){
+    vector<int> md;
+    for(int j = 0; j < bin_xs->size(); j++){
+      if (classifiers->at(i)->pattern.match(bin_xs->at(j))){
+        md.push_back(j);
+        flag[j] = 1;
+      }
+    }
+    mds.push_back(md);
+  }
+
+  vector<int> base;
+  for(int i = 0; i < flag.size();i++){
+    if (flag[i]==0){
+      base.push_back(i);
+    }
+  }
+
+  float acc, fscore;
+  int num_c1, num_c2;
+  for (int i = 0; i < mds.size(); i++){
+    Mat sample = Mat::zeros(0,samples.cols,CV_32FC1);
+    Mat label = Mat::zeros(0,samples.cols,CV_32FC1);
+    cout<<"pattern "<<i<<": ";
+    for(int j = 0; j < mds[i].size(); j++){
+      sample.push_back(samples.row(mds[i][j]));
+      label.push_back(labels.row(mds[i][j]));
+    }
+    classifiers->at(i)->statBinaryCase(sample, label, acc, fscore, num_c1,num_c2);
+    cout<<"acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
+  }
+
+
+    Mat sample = Mat::zeros(0,samples.cols,CV_32FC1);
+    Mat label = Mat::zeros(0,samples.cols,CV_32FC1);
+    cout<<"Default  "<<": ";
+    for(int i = 0; i < base.size(); i++){
+      sample.push_back(samples.row(base[i]));
+      label.push_back(labels.row(base[i]));
+    }
+    defaultClassifier->statBinaryCase(sample, label, acc, fscore, num_c1,num_c2);
+    cout<<"acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
+
 }
 
 float CPXC::predict1(Mat sample, vector<int>* bin_ins, Mat &probs){

@@ -539,11 +539,12 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
   base->NBC = NBC;
   //stat
   float acc, fscore;
-  base->statBinaryCase(sampleLE, labelLE, acc,fscore);
-  cout<<"For LE: acc="<<acc<<"  f-measure="<<fscore<<endl;
+  int num_c1,num_c2;
+  base->statBinaryCase(sampleLE, labelLE, acc,fscore,num_c1,num_c2);
+  cout<<"For LE: acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
   
-  base->statBinaryCase(sampleSE, labelSE, acc,fscore);
-  cout<<"For SE: acc="<<acc<<"  f-measure="<<fscore<<endl;
+  base->statBinaryCase(sampleSE, labelSE, acc,fscore, num_c1, num_c2);
+  cout<<"For SE: acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
   return NBC;
 }
 
@@ -688,7 +689,6 @@ patternSet->save("temp/contrast_pattern_results.txt");
   
   print_pattern_coverage(patternSet,newXs);
  
-  if(1) return 1;
 
   CPXC classifier;
   classifier.num_of_classes = num_of_classes;
@@ -710,11 +710,19 @@ patternSet->save("temp/contrast_pattern_results.txt");
   cout<<"TER="<<classifier.TER(nbc,trainingX,trainingY,bin_xs)<<endl;
   CPXC new_c = classifier.optimize(10,nbc,trainingX,trainingY,bin_xs);
   cout<<"after TER="<<new_c.TER(nbc,trainingX,trainingY,bin_xs)<<" size="<<new_c.classifiers->size()<<endl;
-  
+ 
+  cout<<"For Training:"<<endl;
+  cout<<"pattern coverage"<<endl;
+  new_c.print_pattern_cover(bin_xs);
+  cout<<"pattern stat"<<endl;
+  new_c.printPatternStat(trainingX,trainingY,bin_xs);
+  cout<<endl;
+
   vector<int> allLabels;
   vector<vector<float> >allProbs(num_of_classes);
   
   vector<int> statCov;
+  vector<vector<int>* >* test_bin_xs = new vector<vector<int>* >();
 
   int err =0;
   //cout<<"classifier number = "<< classifier.classifiers->size()<<endl;
@@ -726,6 +734,7 @@ patternSet->save("temp/contrast_pattern_results.txt");
       cout<<counter++<<endl;
     }*/
     Mat probs;
+    test_bin_xs->push_back(bin_ins);
     //int response = (int)classifier.predict(testingX.row(i),md);
     //int response = (int)classifier.predict1(testingX.row(i),bin_ins,probs);
     int response = (int)new_c.predict1(testingX.row(i),bin_ins,probs);
@@ -740,7 +749,7 @@ patternSet->save("temp/contrast_pattern_results.txt");
     cout<<"  true="<<testingY.at<float>(i,0)<<"  "<<probs.size()<<endl;
     */
    // int response = (int)base->predict(testingX.row(i),probs);
-    delete bin_ins;
+    //delete bin_ins;
     //cout<<i<<endl;
     int trueLabel =(int) testingY.at<float>(i,0);
     allLabels.push_back(trueLabel);
@@ -753,6 +762,14 @@ patternSet->save("temp/contrast_pattern_results.txt");
     }
     //cout<<response<<endl;
   }
+
+
+  cout<<"For Testing: size="<<testingX.size()<<endl;
+  cout<<"pattern coverage"<<endl;
+  new_c.print_pattern_cover(test_bin_xs);
+  cout<<"pattern stat"<<endl;
+  new_c.printPatternStat(testingX,testingY,test_bin_xs);
+  cout<<endl;
   
   new_c.print_cover(statCov);
 
@@ -822,7 +839,7 @@ int main(int argc, char** argv){
     //cout<<"fold "<<n<<"  error="<<err<<endl;
     cout<<err<<endl;
     error+=err;
-    cout<<"first="<<first<<"  end="<<end<<endl;
+    cout<<"first="<<first<<"  end="<<last<<endl;
   }
   //cout<<"avg erddror" <<error/fold<<endl;
 }

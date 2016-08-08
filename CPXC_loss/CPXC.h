@@ -27,7 +27,7 @@ public:
   float predict(cv::Mat samples);
   float predict(Mat sample, Mat& probs);
 
-  void statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore);
+  void statBinaryCase(cv::Mat& samples, cv::Mat &labels, float & acc, float& fscore, int & num_c1, int &num_c2);
 };
 
 class CPXC{
@@ -56,5 +56,6 @@ public:
   float obj(Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
   CPXC optimize(int k,Ptr<NormalBayesClassifier> base, cv::Mat &xs, cv::Mat &ys, std::vector<std::vector<int>* >* bin_xs);
   void print_pattern_cover(vector<vector<int>* >* xs);
+  void printPatternStat(Mat& samples, Mat& labels, vector<vector<int>* >* bin_xs);
 };
 #endif
