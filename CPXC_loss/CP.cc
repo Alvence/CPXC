@@ -390,6 +390,7 @@ bool isFiltered(Pattern &p, vector<vector<int>*>* const xs,vector<vector<int> *>
   float countLE = count(p,LE);
   float countSE = count(p,SE);
 
+
   if (countLE/countSE <suppRatio){
       return true;
   }

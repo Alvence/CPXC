@@ -540,6 +540,9 @@ Ptr<NormalBayesClassifier> baseline_classfier_NBC(Mat& trainingX, Mat& trainingY
   //stat
   float acc, fscore;
   int num_c1,num_c2;
+  base->statBinaryCase(trainingX, trainingY, acc,fscore,num_c1,num_c2);
+  cout<<"For Whole data: acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
+  
   base->statBinaryCase(sampleLE, labelLE, acc,fscore,num_c1,num_c2);
   cout<<"For LE: acc="<<acc<<"  f-measure="<<fscore<<" #c0="<<num_c1<<" #c1="<<num_c2<<endl;
   
@@ -621,7 +624,7 @@ float run(int argc, char** argv, int first, int last){
   if (equalwidth){
     divider->init_equal_width(ds,5);
   }else{
-    divider->init_minimal_entropy(ds, classIndex, sc);
+    divider->init_minimal_entropy(dsa, classIndex, sc);
   }
   divider->save("temp/discretization_results.txt");
  
@@ -736,7 +739,7 @@ patternSet->save("temp/contrast_pattern_results.txt");
     }*/
     Mat probs;
     test_bin_xs->push_back(bin_ins);
-    //int response = (int)classifier.predict(testingX.row(i),md);
+    //int response = (int)base->predict(testingX.row(i), probs);
     //int response = (int)classifier.predict1(testingX.row(i),bin_ins,probs);
     int response = (int)new_c.predict1(testingX.row(i),bin_ins,probs);
 
